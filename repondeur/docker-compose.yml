@@ -1,6 +1,6 @@
 # See: https://docs.docker.com/compose/compose-file
 
-version: "3"
+version: "3.4"
 
 services:
 
@@ -8,6 +8,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/Dockerfile.app
+      target: webapp
     command: /bin/bash ./docker/start-webapp.sh
     volumes:
       - ./:/app
@@ -15,12 +16,37 @@ services:
       - "6543:6543"
     depends_on:
       - postgres
+      - redis
+
+  tests:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.app
+      target: tests
+    command: /bin/true
+    volumes:
+      - ./:/app
+    depends_on:
       - postgres-test
       - redis
     environment:
       ZAM_TEST_DB_URL: postgresql://zam-test:zam-test@postgres-test/zam-test
       ZAM_TEST_TASKS_REDIS_URL: redis://redis:6379/10
       ZAM_TEST_DATA_REDIS_URL: redis://redis:6379/11
+
+  notebook:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.app
+      target: notebook
+    command: jupyter notebook --allow-root --ip=notebook --port=8889
+    volumes:
+      - ./:/app
+    ports:
+      - "8889:8889"
+    depends_on:
+      - postgres
+      - redis
 
   worker:
     build:
