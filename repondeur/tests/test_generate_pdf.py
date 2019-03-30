@@ -184,9 +184,7 @@ def test_generate_pdf_with_amendement_content(
     amendement_6666.user_content.reponse = "La réponse"
     DBSession.add(amendement_6666)
     lecture_senat = (
-        DBSession.query(Lecture)
-        .filter(Lecture.num_texte == lecture_senat.num_texte)
-        .first()
+        DBSession.query(Lecture).filter(Lecture.texte == lecture_senat.texte).first()
     )
     parser = HTMLParser(
         generate_html_for_pdf(DummyRequest(), "print.html", {"lecture": lecture_senat})
@@ -237,9 +235,7 @@ def test_generate_pdf_with_amendement_content_factor_authors_groups(
     amendement_9999.user_content.reponse = "La réponse"
     DBSession.add(amendement_9999)
     lecture_senat = (
-        DBSession.query(Lecture)
-        .filter(Lecture.num_texte == lecture_senat.num_texte)
-        .first()
+        DBSession.query(Lecture).filter(Lecture.texte == lecture_senat.texte).first()
     )
     parser = HTMLParser(
         generate_html_for_pdf(DummyRequest(), "print.html", {"lecture": lecture_senat})
@@ -291,9 +287,7 @@ def test_generate_pdf_with_amendement_content_factor_only_groups(
     amendement_9999.user_content.reponse = "La réponse"
     DBSession.add(amendement_9999)
     lecture_senat = (
-        DBSession.query(Lecture)
-        .filter(Lecture.num_texte == lecture_senat.num_texte)
-        .first()
+        DBSession.query(Lecture).filter(Lecture.texte == lecture_senat.texte).first()
     )
     parser = HTMLParser(
         generate_html_for_pdf(DummyRequest(), "print.html", {"lecture": lecture_senat})
@@ -389,9 +383,7 @@ def test_generate_pdf_with_amendement_content_factor_many_authors_groups(
         reponse="La réponse",
     )
     lecture_senat = (
-        DBSession.query(Lecture)
-        .filter(Lecture.num_texte == lecture_senat.num_texte)
-        .first()
+        DBSession.query(Lecture).filter(Lecture.texte == lecture_senat.texte).first()
     )
     parser = HTMLParser(
         generate_html_for_pdf(DummyRequest(), "print.html", {"lecture": lecture_senat})
@@ -437,9 +429,7 @@ def test_generate_pdf_with_amendement_content_gouvernemental(
     amendement_6666.user_content.reponse = "La présentation"
     DBSession.add(amendement_6666)
     lecture_senat = (
-        DBSession.query(Lecture)
-        .filter(Lecture.num_texte == lecture_senat.num_texte)
-        .first()
+        DBSession.query(Lecture).filter(Lecture.texte == lecture_senat.texte).first()
     )
     parser = HTMLParser(
         generate_html_for_pdf(DummyRequest(), "print.html", {"lecture": lecture_senat})

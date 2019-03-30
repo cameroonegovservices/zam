@@ -23,7 +23,7 @@ def test_lecture_link_not_in_navbar_if_no_lecture(app):
     assert 'title="Aller à la liste des lectures">Lectures</a></li>' not in resp.text
 
 
-def test_get_form(app):
+def test_get_form(app, dossiers):
     resp = app.get("/lectures/add", user="user@example.com")
 
     assert resp.status_code == 200
@@ -55,11 +55,11 @@ def test_get_form(app):
 
 
 @responses.activate
-def test_post_form(app):
+def test_post_form(app, texte_an, dossiers):
     from zam_repondeur.models import Lecture
 
     assert not Lecture.exists(
-        chambre="an", session="15", num_texte=269, partie=None, organe="PO717460"
+        chambre="an", session="15", texte=texte_an, partie=None, organe="PO717460"
     )
 
     responses.add(
@@ -130,11 +130,11 @@ def test_post_form(app):
     assert "Lecture créée avec succès," in resp.text
 
     lecture = Lecture.get(
-        chambre="an", session="15", num_texte=269, partie=None, organe="PO717460"
+        chambre="an", session="15", texte=texte_an, partie=None, organe="PO717460"
     )
     assert lecture.chambre == "an"
     assert lecture.titre == "Première lecture – Titre lecture"
-    assert lecture.dossier_legislatif == "Sécurité sociale : loi de financement 2018"
+    assert lecture.dossier.titre == "Sécurité sociale : loi de financement 2018"
     result = (
         "Assemblée nationale, 15e législature, Séance publique, Première lecture, "
         "texte nº\u00a0269"
@@ -156,13 +156,13 @@ def test_post_form(app):
 
 
 @responses.activate
-def test_post_form_senat_2019(app):
+def test_post_form_senat_2019(app, texte_senat):
     from zam_repondeur.models import Lecture
 
     assert not Lecture.exists(
         chambre="senat",
         session="2018-2019",
-        num_texte=106,
+        texte=texte_senat,
         partie=None,
         organe="PO78718",
     )
@@ -229,13 +229,13 @@ def test_post_form_senat_2019(app):
     lecture = Lecture.get(
         chambre="senat",
         session="2018-2019",
-        num_texte=106,
+        texte=texte_senat,
         partie=None,
         organe="PO78718",
     )
     assert lecture.chambre == "senat"
     assert lecture.titre == "Première lecture – Titre lecture"
-    assert lecture.dossier_legislatif == "Sécurité sociale : loi de financement 2019"
+    assert lecture.dossier.titre == "Sécurité sociale : loi de financement 2019"
     result = "Sénat, session 2018-2019, Séance publique, Première lecture, texte nº 106"
     assert str(lecture) == result
 
@@ -244,7 +244,11 @@ def test_post_form_already_exists(app, lecture_an):
     from zam_repondeur.models import Lecture
 
     assert Lecture.exists(
-        chambre="an", session="15", num_texte=269, partie=None, organe="PO717460"
+        chambre="an",
+        session="15",
+        texte=lecture_an.texte,
+        partie=None,
+        organe="PO717460",
     )
 
     # We cannot use form.submit() given the form is dynamic and does not

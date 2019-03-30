@@ -4,7 +4,8 @@ from typing import Dict, Iterator, List, NamedTuple, Optional
 
 from ...dates import parse_date
 from ..common import extract_from_remote_zip, roman
-from .models import Chambre, Lecture, Dossier, Texte, TypeTexte
+from .models import Chambre, TypeTexte
+from zam_repondeur.models import get_one_or_create, Dossier, Texte, Lecture
 
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,10 @@ def _get_dossiers_legislatifs(legislature: int) -> Dict[str, Dossier]:
 def fetch_dossiers_legislatifs(legislature: int) -> dict:
     legislature_roman = roman(legislature)
     filename = f"Dossiers_Legislatifs_{legislature_roman}.json"
-    url = f"http://data.assemblee-nationale.fr/static/openData/repository/{legislature}/loi/dossiers_legislatifs/{filename}.zip"  # noqa
+    url = (
+        "http://data.assemblee-nationale.fr/static/openData/repository/"
+        f"{legislature}/loi/dossiers_legislatifs/{filename}.zip"
+    )
     with extract_from_remote_zip(url, filename) as json_file:
         data: dict = load(json_file)
     return data
@@ -42,26 +46,28 @@ def fetch_dossiers_legislatifs(legislature: int) -> dict:
 
 def parse_textes(export: dict) -> Dict[str, Texte]:
     return {
-        item["uid"]: Texte(
+        item["uid"]: get_one_or_create(
+            Texte,
             uid=item["uid"],
             type_=type_texte(item),
             numero=int(item["notice"]["numNotice"]),
             titre_long=item["titres"]["titrePrincipal"],
             titre_court=item["titres"]["titrePrincipalCourt"],
             date_depot=parse_date(item["cycleDeVie"]["chrono"]["dateDepot"]),
-        )
+            create_kwargs={"lectures": []},
+        )[0]
         for item in export["textesLegislatifs"]["document"]
         if item["@xsi:type"] == "texteLoi_Type"
         if item["classification"]["type"]["code"] in {"PION", "PRJL"}
     }
 
 
-def type_texte(item: dict) -> TypeTexte:
+def type_texte(item: dict) -> str:
     code = item["classification"]["type"]["code"]
     if code == "PION":
-        return TypeTexte.PROPOSITION
+        return str(TypeTexte.PROPOSITION)
     if code == "PRJL":
-        return TypeTexte.PROJET
+        return str(TypeTexte.PROJET)
     raise NotImplementedError
 
 
@@ -104,12 +110,10 @@ def parse_dossier(dossier: dict, textes: Dict[str, Texte]) -> Dossier:
     uid = dossier["uid"]
     titre = dossier["titreDossier"]["titre"]
     is_plf = "PLF" in dossier
-    lectures = [
-        lecture
-        for acte in top_level_actes(dossier)
-        for lecture in gen_lectures(acte, textes, is_plf)
-    ]
-    return Dossier(uid=uid, titre=titre, lectures=lectures)
+    instance: Dossier = get_one_or_create(Dossier, uid=uid, titre=titre)[0]
+    for acte in top_level_actes(dossier):
+        create_lectures(instance, acte, textes, is_plf)
+    return instance
 
 
 def top_level_actes(dossier: dict) -> Iterator[dict]:
@@ -118,9 +122,23 @@ def top_level_actes(dossier: dict) -> Iterator[dict]:
             yield acte
 
 
-def gen_lectures(
-    acte: dict, textes: Dict[str, Texte], is_plf: bool = False
-) -> Iterator[Lecture]:
+def get_session(chambre: Chambre, texte: Texte) -> str:
+    if chambre == Chambre.AN:
+        return "15"  # FIXME
+    else:
+        if not texte.date_depot:
+            return "2017-2018"  # FIXME: sane default?
+        # The session changes the first working day of October.
+        if texte.date_depot.month >= 10:
+            year = texte.date_depot.year
+        else:
+            year = texte.date_depot.year - 1
+        return f"{year}-{year + 1}"
+
+
+def create_lectures(
+    dossier: Dossier, acte: dict, textes: Dict[str, Texte], is_plf: bool = False
+) -> None:
     for result in walk_actes(acte):
         chambre, titre = TOP_LEVEL_ACTES[acte["codeActe"]]
         if result.phase == "COM-FOND":
@@ -142,12 +160,15 @@ def gen_lectures(
         ] if is_plf and result.premiere_lecture else [None]
 
         for partie in parties:
-            yield Lecture(
-                chambre=chambre,
+            get_one_or_create(
+                Lecture,
+                chambre=str(chambre),
+                session=get_session(chambre, texte),
                 titre=titre,
                 texte=texte,
                 partie=partie,
                 organe=result.organe,
+                dossier=dossier,
             )
 
 

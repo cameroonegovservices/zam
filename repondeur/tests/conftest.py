@@ -1,4 +1,8 @@
+import json
 import os
+from datetime import datetime
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import transaction
@@ -6,6 +10,11 @@ import transaction
 from fixtures.dossiers import mock_dossiers  # noqa: F401
 from fixtures.organes_acteurs import mock_organes_acteurs  # noqa: F401
 from testapp import TestApp as BaseTestApp
+
+HERE = Path(os.path.dirname(__file__))
+
+
+DOSSIERS = HERE / "fetch" / "sample_data" / "Dossiers_Legislatifs_XV.json"
 
 
 class TestApp(BaseTestApp):
@@ -49,7 +58,7 @@ def settings():
 
 
 @pytest.fixture(scope="session")  # noqa: F811
-def wsgi_app(settings, mock_dossiers, mock_organes_acteurs):
+def wsgi_app(settings, mock_organes_acteurs):
     from zam_repondeur import make_app
 
     return make_app(None, **settings)
@@ -131,17 +140,45 @@ def user_daniel(db):
 
 
 @pytest.fixture
-def lecture_an(db):
+def texte_an(db):
+    from zam_repondeur.models import Texte
+
+    with transaction.manager:
+        texte = Texte.create(
+            uid="foo",
+            type_="bar",
+            numero=269,
+            titre_long="Titre long",
+            titre_court="Titre court",
+            date_depot=datetime(2018, 11, 8),
+            lectures=[],
+        )
+
+    return texte
+
+
+@pytest.fixture
+def dossier_an(db):
+    from zam_repondeur.models import Dossier
+
+    with transaction.manager:
+        texte = Dossier.create(uid="foo", titre="Titre dossier legislatif AN")
+
+    return texte
+
+
+@pytest.fixture
+def lecture_an(db, texte_an, dossier_an):
     from zam_repondeur.models import Lecture
 
     with transaction.manager:
         lecture = Lecture.create(
             chambre="an",
             session="15",
-            num_texte=269,
+            texte=texte_an,
             titre="Numéro lecture – Titre lecture",
             organe="PO717460",
-            dossier_legislatif="Titre dossier legislatif",
+            dossier=dossier_an,
         )
 
     return lecture
@@ -184,17 +221,63 @@ def user_daniel_table_an(user_daniel, lecture_an):
 
 
 @pytest.fixture
-def lecture_senat(db):
+def texte_commission_publique(db):
+    from zam_repondeur.models import Texte
+
+    with transaction.manager:
+        texte = Texte.create(
+            uid="foo",
+            type_="bar",
+            numero=806,
+            titre_long="Titre long",
+            titre_court="Titre court",
+            date_depot=datetime(2018, 11, 8),
+            lectures=[],
+        )
+
+    return texte
+
+
+@pytest.fixture
+def texte_senat(db):
+    from zam_repondeur.models import Texte
+
+    with transaction.manager:
+        texte = Texte.create(
+            uid="foo",
+            type_="bar",
+            numero=63,
+            titre_long="Titre long",
+            titre_court="Titre court",
+            date_depot=datetime(2018, 11, 8),
+            lectures=[],
+        )
+
+    return texte
+
+
+@pytest.fixture
+def dossier_senat(db):
+    from zam_repondeur.models import Dossier
+
+    with transaction.manager:
+        texte = Dossier.create(uid="foo", titre="Titre dossier legislatif sénat")
+
+    return texte
+
+
+@pytest.fixture
+def lecture_senat(db, texte_senat, dossier_senat):
     from zam_repondeur.models import Lecture
 
     with transaction.manager:
         lecture = Lecture.create(
             chambre="senat",
             session="2017-2018",
-            num_texte=63,
+            texte=texte_senat,
             titre="Numéro lecture – Titre lecture sénat",
             organe="PO78718",
-            dossier_legislatif="Titre dossier legislatif sénat",
+            dossier=dossier_senat,
         )
 
     return lecture
@@ -334,17 +417,77 @@ def amendements_senat(db, lecture_senat, article1_senat):
 
 
 @pytest.fixture
-def lecture_essoc(db):
+def texte_essoc(db):
+    from zam_repondeur.models import Texte
+
+    with transaction.manager:
+        texte = Texte.create(
+            uid="foo",
+            type_="bar",
+            numero=806,
+            titre_long="Titre long",
+            titre_court="Titre court",
+            date_depot=datetime(2018, 11, 8),
+            lectures=[],
+        )
+
+    return texte
+
+
+@pytest.fixture
+def dossier_essoc(db):
+    from zam_repondeur.models import Dossier
+
+    with transaction.manager:
+        texte = Dossier.create(
+            uid="foo",
+            titre="Fonction publique : un Etat au service d'une société de confiance",
+        )
+
+    return texte
+
+
+@pytest.fixture
+def lecture_essoc(db, texte_essoc, dossier_essoc):
     from zam_repondeur.models import Lecture
 
     with transaction.manager:
         lecture = Lecture.create(
             chambre="an",
             session="15",
-            num_texte=806,
+            texte=texte_essoc,
             titre="Nouvelle lecture – Titre lecture",
             organe="PO744107",
-            dossier_legislatif="Fonction publique : un Etat au service d'une société de confiance",  # noqa
+            dossier=dossier_essoc,
         )
 
     return lecture
+
+
+@pytest.fixture
+def textes(db):
+    from zam_repondeur.fetch.an.dossiers.dossiers_legislatifs import parse_textes
+
+    with open(DOSSIERS) as f_:
+        data = json.load(f_)
+    return parse_textes(data["export"])
+
+
+@pytest.fixture
+def dossiers(db):
+    from zam_repondeur.models import DBSession
+    from zam_repondeur.fetch.an.dossiers.dossiers_legislatifs import (
+        get_dossiers_legislatifs
+    )
+
+    with patch(
+        "zam_repondeur.fetch.an.dossiers.dossiers_legislatifs.extract_from_remote_zip"
+    ) as m_open:
+        m_open.return_value = DOSSIERS.open()
+        with transaction.manager:
+            dossiers_by_uid = get_dossiers_legislatifs(15)
+            for dossier in dossiers_by_uid.values():
+                DBSession.add(dossier)
+                DBSession.add_all(dossier.lectures)
+
+    return dossiers_by_uid

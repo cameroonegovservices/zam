@@ -78,7 +78,7 @@ def test_post_form(app, lecture_an, article1_an):
     lecture_an = Lecture.get(
         chambre=lecture_an.chambre,
         session=lecture_an.session,
-        num_texte=lecture_an.num_texte,
+        texte=lecture_an.texte,
         partie=None,
         organe=lecture_an.organe,
     )
@@ -95,7 +95,7 @@ def test_post_form(app, lecture_an, article1_an):
         lecture = Lecture.get(
             chambre=lecture_an.chambre,
             session=lecture_an.session,
-            num_texte=lecture_an.num_texte,
+            texte=lecture_an.texte,
             partie=None,
             organe=lecture_an.organe,
         )

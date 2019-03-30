@@ -154,23 +154,17 @@ class TestFetchAndParseAll:
         assert errored == []
 
     @responses.activate
-    def test_sous_amendements(self, app, source):
-        from zam_repondeur.models import DBSession, Lecture
+    def test_sous_amendements(self, app, source, lecture_an):
+        from zam_repondeur.models import DBSession
 
         with transaction.manager:
-            lecture = Lecture.create(
-                chambre="an",
-                session="15",
-                num_texte=911,
-                titre="Titre lecture",
-                organe="PO717460",
-                dossier_legislatif="Titre dossier legislatif",
-            )
+            lecture_an.texte.numero = 911
+            DBSession.add(lecture_an)
 
-        DBSession.add(lecture)
+        DBSession.add(lecture_an)
 
         with setup_mock_responses(
-            lecture=lecture,
+            lecture=lecture_an,
             liste=read_sample_data("an/911/liste.xml"),
             amendements=(
                 ("1", read_sample_data("an/911/1.xml")),
@@ -178,7 +172,7 @@ class TestFetchAndParseAll:
                 ("3", read_sample_data("an/911/3.xml")),
             ),
         ):
-            amendements, created, errored = source.fetch(lecture=lecture)
+            amendements, created, errored = source.fetch(lecture=lecture_an)
 
         assert len(amendements) == 3
 

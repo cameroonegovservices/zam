@@ -5,9 +5,6 @@ from pyramid.config import Configurator
 from redis import Redis
 from redis_lock import Lock
 
-from zam_repondeur.fetch.an.dossiers.dossiers_legislatifs import (
-    get_dossiers_legislatifs
-)
 from zam_repondeur.fetch.an.organes_acteurs import get_organes_acteurs
 
 from .initialize import needs_init
@@ -46,10 +43,8 @@ class DataRepository:
 
     @needs_init
     def load_data(self) -> None:
-        dossiers = get_dossiers_legislatifs(*self.legislatures)
         organes, acteurs = get_organes_acteurs()
         with Lock(self.connection, "data"):
-            self.connection.set("dossiers", pickle.dumps(dossiers))
             self.connection.set("organes", pickle.dumps(organes))
             self.connection.set("acteurs", pickle.dumps(acteurs))
 

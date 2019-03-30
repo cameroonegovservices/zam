@@ -1,11 +1,3 @@
-def test_get_dossiers(app):
-    from zam_repondeur.data import repository
-
-    dossiers = repository.get_data("dossiers")
-
-    assert "DLR5L15N36030" in dossiers
-
-
 def test_get_organes(app):
     from zam_repondeur.data import repository
 

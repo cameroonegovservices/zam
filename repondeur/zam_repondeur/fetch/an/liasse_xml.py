@@ -8,17 +8,14 @@ from lxml import etree
 
 from zam_repondeur.clean import clean_html
 from zam_repondeur.data import repository
-from zam_repondeur.fetch.an.dossiers.models import (
-    Chambre,
-    Dossier,
-    Lecture as LectureRef,
-)
+from zam_repondeur.fetch.an.dossiers.models import Chambre
 from zam_repondeur.fetch.dates import parse_date
 from zam_repondeur.fetch.division import _parse_subdiv
 from zam_repondeur.models import (
     DBSession,
     Article,
     Amendement,
+    Dossier,
     Lecture,
     get_one_or_create,
 )
@@ -176,18 +173,18 @@ def check_same_lecture(
 
     dossier_ref, lecture_ref = _find_dossier_lecture(texte_uid)
 
+    # TODO: there has to be a better way now that we have models.
+
     # This Lecture is only created for the sake of comparison and error message
     # formatting, and is not persisted so we don't add it to the database session
-    liasse_lecture = Lecture(
+    liasse_lecture = Lecture.get(
         chambre=Chambre.AN.value,
         session=session,
-        num_texte=lecture_ref.texte.numero,
+        texte=lecture.texte,
         partie=partie,
         organe=organe,
-        titre=lecture_ref.titre,
-        dossier_legislatif=dossier_ref.titre,
     )
-    if liasse_lecture != lecture:
+    if liasse_lecture and liasse_lecture != lecture:
         raise LectureDoesNotMatch(liasse_lecture)
 
 
@@ -241,10 +238,10 @@ def to_date(text: Optional[str]) -> Optional[date]:
     return parse_date(text)
 
 
-def _find_dossier_lecture(texte_uid: str) -> Tuple[Dossier, LectureRef]:
+def _find_dossier_lecture(texte_uid: str) -> Tuple[Dossier, Lecture]:
     # FIXME: this is not efficient
-    dossiers: Dict[str, Dossier] = repository.get_data("dossiers")
-    for dossier in dossiers.values():
+    dossiers = DBSession.query(Dossier).all()
+    for dossier in dossiers:
         for lecture in dossier.lectures:
             if lecture.texte.uid == texte_uid:
                 return dossier, lecture

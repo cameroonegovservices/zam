@@ -8,11 +8,11 @@ from pyramid.response import Response
 from pyramid.view import view_config, view_defaults
 from sqlalchemy.orm import joinedload
 
-from zam_repondeur.data import repository
 from zam_repondeur.fetch import get_articles
-from zam_repondeur.fetch.an.dossiers.models import Dossier, Lecture
+from zam_repondeur.fetch.an.dossiers.dossiers_legislatifs import get_session
+from zam_repondeur.fetch.an.dossiers.models import Chambre
 from zam_repondeur.message import Message
-from zam_repondeur.models import DBSession, Lecture as LectureModel, User
+from zam_repondeur.models import DBSession, Dossier, Lecture, Texte, User
 from zam_repondeur.models.events.lecture import ArticlesRecuperes
 from zam_repondeur.models.users import Team
 from zam_repondeur.resources import (
@@ -47,7 +47,9 @@ class LecturesAdd:
     def __init__(self, context: LectureCollection, request: Request) -> None:
         self.context = context
         self.request = request
-        self.dossiers_by_uid: Dict[str, Dossier] = repository.get_data("dossiers")
+        self.dossiers_by_uid: Dict[str, Dossier] = {
+            dossier.uid: dossier for dossier in DBSession.query(Dossier).all()
+        }
 
     @view_config(request_method="GET", renderer="lectures_add.html")
     def get(self) -> dict:
@@ -65,39 +67,14 @@ class LecturesAdd:
     def post(self) -> Response:
         dossier = self._get_dossier()
         lecture = self._get_lecture(dossier)
-
-        chambre = lecture.chambre.value
-        num_texte = lecture.texte.numero
-        titre = lecture.titre
-        organe = lecture.organe
-        partie = lecture.partie
-
-        session = lecture.get_session()
-
-        if LectureModel.exists(chambre, session, num_texte, partie, organe):
-            self.request.session.flash(
-                Message(cls="warning", text="Cette lecture existe déjà…")
-            )
-            return HTTPFound(location=self.request.resource_url(self.context))
-
-        lecture_model: LectureModel = LectureModel.create(
-            owned_by_team=self.request.team,
-            chambre=chambre,
-            session=session,
-            num_texte=num_texte,
-            partie=partie,
-            titre=titre,
-            organe=organe,
-            dossier_legislatif=dossier.titre,
-        )
-        get_articles(lecture_model)
-        ArticlesRecuperes.create(request=None, lecture=lecture_model)
+        get_articles(lecture)
+        ArticlesRecuperes.create(request=None, lecture=lecture)
         # Call to fetch_* tasks below being asynchronous, we need to make
-        # sure the lecture_model already exists once and for all in the database
+        # sure the lecture already exists once and for all in the database
         # for future access. Otherwise, it may create many instances and
         # thus many objects within the database.
         transaction.commit()
-        fetch_amendements(lecture_model.pk)
+        fetch_amendements(lecture.pk)
         self.request.session.flash(
             Message(
                 cls="success",
@@ -108,11 +85,12 @@ class LecturesAdd:
         )
         return HTTPFound(
             location=self.request.resource_url(
-                self.context[lecture_model.url_key], "amendements"
+                self.context[lecture.url_key], "amendements"
             )
         )
 
     def _get_dossier(self) -> Dossier:
+        # TODO: avoid retrieving all Dossiers.
         try:
             dossier_uid = self.request.POST["dossier"]
         except KeyError:
@@ -124,8 +102,10 @@ class LecturesAdd:
         return dossier
 
     def _get_lecture(self, dossier: Dossier) -> Lecture:
+        # TODO: deal with chambre
+        chambre = Chambre.AN
         try:
-            texte, organe, partie_str = self.request.POST["lecture"].split("-", 2)
+            texte_uid, organe, partie_str = self.request.POST["lecture"].split("-", 2)
         except (KeyError, ValueError):
             raise HTTPBadRequest
         partie: Optional[int]
@@ -133,18 +113,32 @@ class LecturesAdd:
             partie = None
         else:
             partie = int(partie_str)
-        matching = [
-            lecture
-            for lecture in dossier.lectures
-            if (
-                lecture.texte.uid == texte
-                and lecture.organe == organe
-                and lecture.partie == partie
+        texte = Texte.get(uid=texte_uid)
+        if not texte:
+            raise HTTPBadRequest
+        session = get_session(chambre, texte)
+
+        # TODO: create all lectures and then activate explicitely?
+        if Lecture.exists(str(chambre), session, texte, partie, organe):
+            self.request.session.flash(
+                Message(cls="warning", text="Cette lecture existe déjà…")
             )
-        ]
-        if len(matching) != 1:
-            raise HTTPNotFound
-        return matching[0]
+            lecture = Lecture.get(str(chambre), session, texte, partie, organe)
+            if not lecture:
+                # TODO: force mypy?
+                raise HTTPBadRequest
+        else:
+            lecture = Lecture.create(
+                str(chambre),
+                session,
+                texte,
+                titre="TODO",
+                organe=organe,
+                dossier=dossier,
+                partie=partie,
+                owned_by_team=self.request.team,
+            )
+        return lecture
 
 
 @view_defaults(context=LectureResource)
@@ -291,8 +285,9 @@ def lecture_check(context: LectureResource, request: Request) -> dict:
 @view_config(route_name="choices_lectures", renderer="json")
 def choices_lectures(request: Request) -> dict:
     uid = request.matchdict["uid"]
-    dossiers_by_uid = repository.get_data("dossiers")
-    dossier = dossiers_by_uid[uid]
+    dossier = Dossier.get(uid=uid)
+    if not dossier:
+        return {}
     return {
         "lectures": [
             {"key": lecture.key, "label": lecture.label} for lecture in dossier.lectures

@@ -5,7 +5,7 @@ import pytest
 import transaction
 
 
-# We need data about dossiers, texts and groups
+# We need data about groups
 pytestmark = pytest.mark.usefixtures("data_repository")
 
 
@@ -13,7 +13,7 @@ def open_liasse(filename):
     return (Path(__file__).parent.parent / "sample_data" / filename).open(mode="rb")
 
 
-def test_import_liasse_xml(lecture_essoc):
+def test_import_liasse_xml(dossiers, lecture_essoc):
     from zam_repondeur.fetch.an.liasse_xml import import_liasse_xml
     from zam_repondeur.models import Amendement
 
@@ -30,7 +30,7 @@ def test_import_liasse_xml(lecture_essoc):
     assert errors == []
 
 
-def test_import_liasse_xml_article_additionnel(lecture_essoc):
+def test_import_liasse_xml_article_additionnel(dossiers, textes, lecture_essoc):
     from zam_repondeur.fetch.an.liasse_xml import import_liasse_xml
 
     amendements, errors = import_liasse_xml(
@@ -43,7 +43,9 @@ def test_import_liasse_xml_article_additionnel(lecture_essoc):
     assert errors == []
 
 
-def test_import_same_liasse_xml_again_preserve_response(lecture_essoc):
+def test_import_same_liasse_xml_again_preserve_response(
+    dossiers, textes, lecture_essoc
+):
     from zam_repondeur.fetch.an.liasse_xml import import_liasse_xml
 
     # Let's import amendements
@@ -65,7 +67,7 @@ def test_import_same_liasse_xml_again_preserve_response(lecture_essoc):
     assert errors == []
 
 
-def test_import_smaller_liasse_xml_preserves_responses(lecture_essoc):
+def test_import_smaller_liasse_xml_preserves_responses(dossiers, textes, lecture_essoc):
     from zam_repondeur.fetch.an.liasse_xml import import_liasse_xml
     from zam_repondeur.models import Amendement, DBSession
 
@@ -99,7 +101,7 @@ def test_import_smaller_liasse_xml_preserves_responses(lecture_essoc):
     assert errors == []
 
 
-def test_import_liasse_xml_with_unknown_parent(lecture_essoc):
+def test_import_liasse_xml_with_unknown_parent(dossiers, textes, lecture_essoc):
     from zam_repondeur.fetch.an.liasse_xml import import_liasse_xml
 
     # Let's import a liasse with only a child amendement
@@ -114,7 +116,9 @@ def test_import_liasse_xml_with_unknown_parent(lecture_essoc):
     assert cause == "Unknown parent amendement 28"
 
 
-def test_import_liasse_xml_with_known_but_missing_parent(lecture_essoc):
+def test_import_liasse_xml_with_known_but_missing_parent(
+    dossiers, textes, lecture_essoc
+):
     from zam_repondeur.fetch.an.liasse_xml import import_liasse_xml
 
     # Let's import the parent amendement
@@ -136,31 +140,31 @@ def test_import_liasse_xml_with_known_but_missing_parent(lecture_essoc):
     assert errors == []
 
 
-def test_import_liasse_second_part(app):
+def test_import_liasse_second_part(app, dossiers, textes, texte_essoc, dossier_essoc):
     from zam_repondeur.fetch.an.liasse_xml import import_liasse_xml, LectureDoesNotMatch
-    from zam_repondeur.models import DBSession, Lecture
+    from zam_repondeur.models import Lecture, get_one_or_create
 
     with transaction.manager:
-        part1 = Lecture.create(
+        part1 = get_one_or_create(
+            Lecture,
             chambre="an",
             session="15",
-            num_texte=806,
+            texte=texte_essoc,
             partie=1,
             titre="Nouvelle lecture – Titre lecture",
             organe="PO744107",
-            dossier_legislatif="Fonction publique : un Etat au service d'une société de confiance",  # noqa
-        )
-        part2 = Lecture.create(
+            dossier=dossier_essoc,
+        )[0]
+        part2 = get_one_or_create(
+            Lecture,
             chambre="an",
             session="15",
-            num_texte=806,
+            texte=texte_essoc,
             partie=2,
             titre="Nouvelle lecture – Titre lecture",
             organe="PO744107",
-            dossier_legislatif="Fonction publique : un Etat au service d'une société de confiance",  # noqa
-        )
-
-    DBSession.add(part2)
+            dossier=dossier_essoc,
+        )[0]
 
     with pytest.raises(LectureDoesNotMatch):
         import_liasse_xml(open_liasse("liasse_second_part.xml"), part1)
@@ -174,14 +178,14 @@ def test_import_liasse_second_part(app):
         assert amendement.lecture == part2
 
 
-def test_import_liasse_xml_lecture_is_not_an(lecture_senat):
+def test_import_liasse_xml_lecture_is_not_an(dossiers, textes, lecture_senat):
     from zam_repondeur.fetch.an.liasse_xml import import_liasse_xml, BadChambre
 
     with pytest.raises(BadChambre):
         import_liasse_xml(open_liasse("liasse.xml"), lecture_senat)
 
 
-def test_import_liasse_xml_lecture_does_not_match(lecture_an):
+def test_import_liasse_xml_lecture_does_not_match(dossiers, textes, lecture_an):
     from zam_repondeur.fetch.an.liasse_xml import import_liasse_xml, LectureDoesNotMatch
 
     with pytest.raises(LectureDoesNotMatch):
@@ -192,7 +196,7 @@ def _check_amendement_0(amendement):
 
     assert amendement.lecture.chambre == "an"
     assert amendement.lecture.session == "15"
-    assert amendement.lecture.num_texte == 806
+    assert amendement.lecture.texte.numero == 806
     assert amendement.lecture.organe == "PO744107"
 
     assert amendement.article.type == "article"
@@ -239,7 +243,7 @@ def _check_amendement_1(amendement):
 
     assert amendement.lecture.chambre == "an"
     assert amendement.lecture.session == "15"
-    assert amendement.lecture.num_texte == 806
+    assert amendement.lecture.texte.numero == 806
     assert amendement.lecture.organe == "PO744107"
 
     assert amendement.article.type == "annexe"
