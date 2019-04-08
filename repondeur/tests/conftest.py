@@ -1,4 +1,5 @@
 import os
+from contextlib import contextmanager
 
 import pytest
 
@@ -9,22 +10,50 @@ from fixtures.users import *  # noqa: F401,F403
 from testapp import TestApp as BaseTestApp
 
 
+@contextmanager
+def auto_login(self, kwargs):
+    from zam_repondeur.models import User
+
+    team_name = kwargs.pop("team_name", None)
+    if team_name is not None:
+        team_password = kwargs.pop("team_password")
+        self.team_login(team_name, team_password, headers=kwargs.get("headers"))
+
+    user = kwargs.pop("user", None)
+    if user is not None:
+        assert isinstance(user, User)
+        password = kwargs.pop("password", "secret")
+        self.user_login(
+            email=user.email, password=password, headers=kwargs.get("headers")
+        )
+
+    yield
+
+
 class TestApp(BaseTestApp):
-    def login(self, email, headers=None):
-        resp = self.post("/identification", {"email": email}, headers=headers)
+    def team_login(self, team_name, team_password, headers=None):
+        resp = self.post(
+            "/identification/utilisateur",
+            {"team_name": team_name, "team_password": team_password},
+            headers=headers,
+        )
+        assert resp.status_code == 302
+
+    def user_login(self, email, password, headers=None):
+        resp = self.post(
+            "/identification/utilisateur",
+            {"email": email, "password": password},
+            headers=headers,
+        )
         assert resp.status_code == 302
 
     def get(self, *args, **kwargs):
-        user = kwargs.pop("user", None)
-        if user is not None:
-            self.login(user, headers=kwargs.get("headers"))
-        return super().get(*args, **kwargs)
+        with auto_login(self, kwargs):
+            return super().get(*args, **kwargs)
 
     def post(self, *args, **kwargs):
-        user = kwargs.pop("user", None)
-        if user is not None:
-            self.login(user, headers=kwargs.get("headers"))
-        return super().post(*args, **kwargs)
+        with auto_login(self, kwargs):
+            return super().post(*args, **kwargs)
 
 
 @pytest.fixture(scope="session")

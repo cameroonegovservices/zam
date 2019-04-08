@@ -36,10 +36,21 @@ def includeme(config: Configurator) -> None:
     # Make all views "secure by default"
     config.set_default_permission("view")
 
-    # Add routes for login, logout and welcome
-    config.add_route("user_login", "/identification")
-    config.add_route("logout", "/deconnexion")
+    # Add routes for user login and onboarding
+    config.add_route("user_login", "/identification/utilisateur")
+    config.add_route(
+        "choose_password", "/identification/utilisateur/choix-mot-de-passe"
+    )
     config.add_route("welcome", "/bienvenue")
+
+    # Add routes for team authentication
+    config.add_route("team_login", "/identification/equipe")
+
+    # Add routes for user signup
+    config.add_route("signup", "/inscription")
+
+    # Add routes for logout
+    config.add_route("logout", "/deconnexion")
 
 
 def get_user(request: Request) -> Optional[User]:
@@ -49,20 +60,28 @@ def get_user(request: Request) -> Optional[User]:
     user_id = request.unauthenticated_userid
     if user_id is not None:
         user: Optional[User] = DBSession.query(User).get(user_id)
-        if user and not request.is_xhr:
-            user.record_activity()
+        if user is not None:
+
+            # Invalidate authentication of old user who has not chosen a password yet
+            if user.password is None:
+                return None
+
+            # Record user activity
+            if not request.is_xhr:
+                user.record_activity()
+
         return user
     return None
 
 
 def get_team(request: Request) -> Optional[Team]:
-    team_name = request.environ.get("HTTP_X_REMOTE_USER")
-    if team_name is None:
+    """
+    Find the team in the database based on the ID in the session cookie
+    """
+    team_id = request.session.get("authenticated_teamid")
+    if team_id is None:
         return None
-    team: Optional[Team] = DBSession.query(Team).filter_by(name=team_name).first()
-    if team is None:
-        team = Team.create(name=team_name)
-        DBSession.flush()
+    team: Optional[Team] = DBSession.query(Team).filter_by(pk=team_id).first()
     return team
 
 

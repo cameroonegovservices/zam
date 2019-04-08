@@ -25,18 +25,24 @@ def extract_item_text(selector, trs):
     return [item.find_element_by_css_selector(selector).text for item in trs]
 
 
-def login(driver, base_url, email):
+def login(driver, base_url, email, password):
     wait = WebDriverWait(driver, 1)
 
     # Enter email on identification page
-    identification_url = f"{base_url}identification"
+    identification_url = f"{base_url}identification/utilisateur"
     driver.get(identification_url)
     if driver.current_url.startswith(f"{base_url}lectures/"):
         return  # already logged in
     assert driver.find_element_by_css_selector("h1").text == "Entrer dans Zam"
+    assert driver.find_element_by_css_selector("label").text == "Votre courriel"
     driver.find_element_by_css_selector("input[type='email']").send_keys(email)
     driver.find_element_by_css_selector("input[type='submit']").click()
-    wait.until(lambda driver: not driver.current_url.startswith(identification_url))
+
+    # Enter password
+    assert driver.find_element_by_css_selector("label").text == "Votre mot de passe Zam"
+    driver.find_element_by_css_selector("input[type='password']").send_keys(password)
+    driver.find_element_by_css_selector("input[type='submit']").click()
+    # wait.until(lambda driver: not driver.current_url.startswith(identification_url))
 
     # Submit name on first login
     welcome_url = f"{base_url}bienvenue"
@@ -50,7 +56,7 @@ def login(driver, base_url, email):
     wait.until(lambda driver: not driver.current_url.startswith(welcome_url))
 
 
-def logout(driver, base_url, email):
+def logout(driver, base_url):
     logout_url = f"{base_url}deconnexion"
     driver.get(logout_url)
     wait = WebDriverWait(driver, 1)

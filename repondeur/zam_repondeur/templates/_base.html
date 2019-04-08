@@ -22,7 +22,12 @@
             <ul data-controller="account-menu">
                 {% if request.user %}
                     <li class="account-menu-toggle">
-                        <a class="account" data-action="account-menu#toggle click@window->account-menu#dismiss">{{ request.user.name or "" }}</a>
+                        <a class="account" data-action="account-menu#toggle click@window->account-menu#dismiss">
+                            {{ request.user.name or "" }}
+                            {% if request.team %}
+                                ({{ request.team.name }})
+                            {% endif %}
+                        </a>
                         <ul class="account-menu d-none" data-target="account-menu.menu">
                             {% if request.user.name %}
                                 <li><a href="{{ request.route_url('welcome') }}">Modifier mon nom</a></li>

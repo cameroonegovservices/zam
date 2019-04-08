@@ -6,28 +6,31 @@ import transaction
 def team_zam(db):
     from zam_repondeur.models import Team
 
-    return Team.create(name="Zam")
+    return Team.create(name="Zam", password="secret")
 
 
 @pytest.fixture
 def user_david(db, team_zam):
     from zam_repondeur.models import User
 
-    return User.create(name="David", email="david@example.com")
+    with transaction.manager:
+        return User.create(name="David", password="secret", email="david@example.com")
 
 
 @pytest.fixture
 def user_ronan(db):
     from zam_repondeur.models import User
 
-    return User.create(name="Ronan", email="ronan@example.com")
+    with transaction.manager:
+        return User.create(name="Ronan", password="secret", email="ronan@example.com")
 
 
 @pytest.fixture
 def user_daniel(db):
     from zam_repondeur.models import User
 
-    return User.create(name="Daniel", email="daniel@example.com")
+    with transaction.manager:
+        return User.create(name="Daniel", password="secret", email="daniel@example.com")
 
 
 @pytest.fixture

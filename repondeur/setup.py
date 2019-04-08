@@ -10,6 +10,7 @@ requires = [
     "lockfile",
     "openpyxl",
     "parsy",
+    "passlib",
     "pdfkit",
     "psycopg2",
     "pyramid",
@@ -37,6 +38,9 @@ setup(
     install_requires=requires,
     entry_points={
         "paste.app_factory": ["main = zam_repondeur:make_app"],
-        "console_scripts": ["zam_worker = zam_repondeur.scripts.worker:main"],
+        "console_scripts": [
+            "zam_worker = zam_repondeur.scripts.worker:main",
+            "zam_auth = zam_repondeur.scripts.auth:main",
+        ],
     },
 )

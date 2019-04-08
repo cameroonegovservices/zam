@@ -9,53 +9,47 @@ pytestmark = pytest.mark.flaky(max_runs=5)
 
 
 def test_group_actions_not_visible_by_default(
-    wsgi_server, driver, lecture_an, amendements_an
+    wsgi_server, driver, lecture_an, amendements_an, user_david, user_david_table_an
 ):
-    from zam_repondeur.models import DBSession, User
+    from zam_repondeur.models import DBSession
 
-    email = "user@example.com"
     with transaction.manager:
-        user = DBSession.query(User).filter(User.email == email).first()
-        table = user.table_for(lecture_an)
-        table.amendements.append(amendements_an[0])
+        DBSession.add(user_david_table_an)
+        user_david_table_an.amendements.append(amendements_an[0])
 
     LECTURE_URL = f"{wsgi_server.application_url}lectures/{lecture_an.url_key}"
-    driver.get(f"{LECTURE_URL}/tables/{email}")
+    driver.get(f"{LECTURE_URL}/tables/{user_david.email}")
     group_actions = driver.find_element_by_css_selector(".groupActions")
     assert not group_actions.is_displayed()
 
 
 def test_group_actions_are_visible_by_selection(
-    wsgi_server, driver, lecture_an, amendements_an
+    wsgi_server, driver, lecture_an, amendements_an, user_david, user_david_table_an
 ):
-    from zam_repondeur.models import DBSession, User
+    from zam_repondeur.models import DBSession
 
-    email = "user@example.com"
     with transaction.manager:
-        user = DBSession.query(User).filter(User.email == email).first()
-        table = user.table_for(lecture_an)
-        table.amendements.append(amendements_an[0])
+        DBSession.add(user_david_table_an)
+        user_david_table_an.amendements.append(amendements_an[0])
 
     LECTURE_URL = f"{wsgi_server.application_url}lectures/{lecture_an.url_key}"
-    driver.get(f"{LECTURE_URL}/tables/{email}")
+    driver.get(f"{LECTURE_URL}/tables/{user_david.email}")
     driver.find_element_by_css_selector('[name="amendement-selected"]').click()
     group_actions = driver.find_element_by_css_selector(".groupActions")
     assert group_actions.is_displayed()
 
 
 def test_group_actions_are_made_invisible_by_unselection(
-    wsgi_server, driver, lecture_an, amendements_an
+    wsgi_server, driver, lecture_an, amendements_an, user_david, user_david_table_an
 ):
-    from zam_repondeur.models import DBSession, User
+    from zam_repondeur.models import DBSession
 
-    email = "user@example.com"
     with transaction.manager:
-        user = DBSession.query(User).filter(User.email == email).first()
-        table = user.table_for(lecture_an)
-        table.amendements.append(amendements_an[0])
+        DBSession.add(user_david_table_an)
+        user_david_table_an.amendements.append(amendements_an[0])
 
     LECTURE_URL = f"{wsgi_server.application_url}lectures/{lecture_an.url_key}"
-    driver.get(f"{LECTURE_URL}/tables/{email}")
+    driver.get(f"{LECTURE_URL}/tables/{user_david.email}")
     driver.find_element_by_css_selector('[name="amendement-selected"]').click()
     group_actions = driver.find_element_by_css_selector(".groupActions")
     assert group_actions.is_displayed()
@@ -65,19 +59,17 @@ def test_group_actions_are_made_invisible_by_unselection(
 
 
 def test_group_actions_button_urls_change_with_selection(
-    wsgi_server, driver, lecture_an, amendements_an
+    wsgi_server, driver, lecture_an, amendements_an, user_david, user_david_table_an
 ):
-    from zam_repondeur.models import DBSession, User
+    from zam_repondeur.models import DBSession
 
-    email = "user@example.com"
     with transaction.manager:
-        user = DBSession.query(User).filter(User.email == email).first()
-        table = user.table_for(lecture_an)
-        table.amendements.append(amendements_an[0])
-        table.amendements.append(amendements_an[1])
+        DBSession.add(user_david_table_an)
+        user_david_table_an.amendements.append(amendements_an[0])
+        user_david_table_an.amendements.append(amendements_an[1])
 
     LECTURE_URL = f"{wsgi_server.application_url}lectures/{lecture_an.url_key}"
-    driver.get(f"{LECTURE_URL}/tables/{email}")
+    driver.get(f"{LECTURE_URL}/tables/{user_david.email}")
     find = driver.find_element_by_css_selector
 
     checkboxes = driver.find_elements_by_css_selector('[name="amendement-selected"]')

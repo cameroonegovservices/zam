@@ -3,7 +3,7 @@ from typing import List, Optional, TYPE_CHECKING
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, Table, Text, func
 from sqlalchemy.orm import relationship, backref, joinedload
-from sqlalchemy_utils import EmailType
+from sqlalchemy_utils import EmailType, PasswordType, force_auto_coercion
 
 from zam_repondeur.users import repository as users_repository
 from .base import Base, DBSession
@@ -12,6 +12,11 @@ from .base import Base, DBSession
 if TYPE_CHECKING:
     from .lecture import Lecture  # noqa
     from .table import UserTable  # noqa
+
+
+# Needed for the Pythonic interface for password comparison
+# See: https://sqlalchemy-utils.readthedocs.io/en/latest/data_types.html#module-sqlalchemy_utils.types.password  # noqa
+force_auto_coercion()
 
 
 association_table = Table(
@@ -23,21 +28,29 @@ association_table = Table(
 
 
 class Team(Base):
+    """
+    Before signing up, users need to authenticate with a team
+    """
+
     __tablename__ = "teams"
     __repr_keys__ = ("name",)
 
     pk: int = Column(Integer, primary_key=True)
+
     name: str = Column(Text, nullable=False, unique=True)
-    users = relationship(
-        "User", secondary="teams2users", backref=backref("teams", lazy="joined")
-    )
+    password: str = Column(PasswordType(schemes=["pbkdf2_sha512"]), nullable=True)
+
     created_at: datetime = Column(
         DateTime, nullable=False, default=datetime.utcnow, server_default=func.now()
     )
 
+    users = relationship(
+        "User", secondary="teams2users", backref=backref("teams", lazy="joined")
+    )
+
     @classmethod
-    def create(cls, name: str) -> "Team":
-        team = cls(name=name)
+    def create(cls, name: str, password: str) -> "Team":
+        team = cls(name=name, password=password)
         DBSession.add(team)
         return team
 
@@ -56,8 +69,12 @@ class User(Base):
     INACTIVE_AFTER = 30  # minutes.
 
     pk: int = Column(Integer, primary_key=True)
+
     email: str = Column(EmailType, nullable=False, unique=True)
+    password: str = Column(PasswordType(schemes=["pbkdf2_sha512"]), nullable=True)
+
     name: Optional[str] = Column(Text)
+
     created_at: datetime = Column(
         DateTime, nullable=False, default=datetime.utcnow, server_default=func.now()
     )
@@ -72,8 +89,10 @@ class User(Base):
             return self.email
 
     @classmethod
-    def create(cls, email: str, name: Optional[str] = None) -> "User":
-        user = cls(email=email, name=name)
+    def create(
+        cls, email: str, name: Optional[str] = None, password: Optional[str] = None
+    ) -> "User":
+        user = cls(email=email, password=password, name=name)
         DBSession.add(user)
         return user
 

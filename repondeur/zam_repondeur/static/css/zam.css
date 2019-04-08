@@ -461,10 +461,13 @@ label[for="emptytable"] abbr {
     .intro fieldset {
         display: flex;
         flex-direction: column;
-        margin: 2rem 0 5rem;
+        margin: 1.5rem 0;
         width: 90%;
         font-size: 1.2rem;
     }
+        .intro fieldset:last-of-type {
+            margin-bottom: 5rem;
+        }
         .intro fieldset label {
             font-weight: 600;
         }

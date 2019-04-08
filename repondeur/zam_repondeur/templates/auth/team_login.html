@@ -1,0 +1,26 @@
+{% extends "_base.html" %}
+
+
+{% block body %}
+<h1>Se connecter à une équipe</h1>
+<form method="POST" class="intro">
+    {% if request.session.pop('bad_credentials', None) %}
+        <p class="error">L’identifiant ou le mot de passe est incorrect.</p>
+    {% endif %}
+    <fieldset>
+        {% if request.session.pop('missing_team_name', None) %}
+            <p class="error">La saisie d’un identifiant d’équipe est requise.</p>
+        {% endif %}
+        <label for="team_name">Identifiant de l’équipe</label>
+        <input type="text" name="team_name" autocomplete="off" required autocorrect="off" spellcheck="false" value="{{ team_name }}">
+    </fieldset>
+    <fieldset>
+        {% if request.session.pop('missing_team_password', None) %}
+            <p class="error">La saisie d’un mot de passe d’équipe est requise.</p>
+        {% endif %}
+        <label for="team_password">Mot de passe de l’équipe</label>
+        <input type="password" name="team_password" required>
+    </fieldset>
+    <input type="submit" class="button primary enabled" value="Se connecter à l’équipe">
+</form>
+{% endblock %}

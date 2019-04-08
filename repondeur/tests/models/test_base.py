@@ -35,10 +35,16 @@ class TestRepr:
         assert repr(team_zam) == expected_repr
 
     def test_user(self, user_david):
+        from zam_repondeur.models import DBSession
+
+        DBSession.add(user_david)
         expected_repr = "<User name='David' email='david@example.com' teams=[]>"
         assert repr(user_david) == expected_repr
 
     def test_user_with_team(self, team_zam, user_david):
+        from zam_repondeur.models import DBSession
+
+        DBSession.add(user_david)
         user_david.teams.append(team_zam)
         expected_repr = (
             "<User name='David' email='david@example.com' teams=[<Team name='Zam'>]>"
