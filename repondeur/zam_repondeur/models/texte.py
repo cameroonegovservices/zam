@@ -85,6 +85,9 @@ class Texte(Base):
         "date_depot",
     )
 
+    def __lt__(self, other: "Texte") -> bool:
+        return bool(self.date_depot < other.date_depot)
+
     @classmethod
     def get(
         cls, chambre: Chambre, session_or_legislature: str, numero: int
