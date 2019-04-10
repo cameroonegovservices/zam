@@ -47,9 +47,9 @@ def dossier_an(db):
     from zam_repondeur.models import Dossier
 
     with transaction.manager:
-        texte = Dossier.create(uid="foo", titre="Titre dossier legislatif AN")
+        dossier = Dossier.create(uid="foo", titre="Titre dossier legislatif AN")
 
-    return texte
+    return dossier
 
 
 @pytest.fixture
@@ -93,9 +93,9 @@ def dossier_senat(db):
     from zam_repondeur.models import Dossier
 
     with transaction.manager:
-        texte = Dossier.create(uid="bar", titre="Titre dossier legislatif sénat")
+        dossier = Dossier.create(uid="bar", titre="Titre dossier legislatif sénat")
 
-    return texte
+    return dossier
 
 
 @pytest.fixture
@@ -260,12 +260,12 @@ def dossier_essoc(db):
     from zam_repondeur.models import Dossier
 
     with transaction.manager:
-        texte = Dossier.create(
+        dossier = Dossier.create(
             uid="bar",
             titre="Fonction publique : un Etat au service d'une société de confiance",
         )
 
-    return texte
+    return dossier
 
 
 @pytest.fixture
