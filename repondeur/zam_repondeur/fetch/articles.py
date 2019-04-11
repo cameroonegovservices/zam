@@ -18,6 +18,8 @@ from zam_repondeur.models import (
 from zam_repondeur.models.events.article import (
     ContenuArticleModifie,
     TitreArticleModifie,
+    TitreArticleCopie,
+    PresentationArticleCopiee,
 )
 
 
@@ -70,6 +72,7 @@ def parse_first_working_url(urls: List[str]) -> List[dict]:
 
 def update_lecture_articles(lecture: Lecture, all_article_data: List[dict]) -> bool:
     changed = False
+    previous_articles = lecture.previous.articles if lecture.previous else []
     for index, article_data in enumerate(all_article_data):
         if article_data["type"] in {"texte", "section", "dots"}:
             continue
@@ -86,6 +89,11 @@ def update_lecture_articles(lecture: Lecture, all_article_data: List[dict]) -> b
             articles = find_or_create_articles(lecture, article_data)
         for article in articles:
             changed |= update_article_contents(article, article_data)
+            # Has to be before set_default_article_title because we want to
+            # copy it only if there is no previous value (even a default one).
+            changed |= copy_user_content_from_previous_lecture(
+                previous_articles, article
+            )
             changed |= set_default_article_title(
                 article, article_data, partial(get_section_title, all_article_data)
             )
@@ -200,3 +208,35 @@ def get_section_title(items: List[Dict[str, Any]], article: dict) -> str:
             title: str = item["titre"]
             return title
     return ""
+
+
+def copy_user_content_from_previous_lecture(
+    previous_articles: List[Article], article: Article
+) -> bool:
+    if not previous_articles:
+        return False
+    matching_articles = [
+        art
+        for art in previous_articles
+        if art.num == article.num
+        and art.type == article.type
+        and art.mult == article.mult
+        and art.pos == article.pos
+    ]
+    if not matching_articles:
+        return False
+    matching_article = matching_articles[0]
+    has_changed = False
+    if not article.user_content.title:
+        TitreArticleCopie.create(
+            request=None, article=article, title=matching_article.user_content.title
+        )
+        has_changed = True
+    if not article.user_content.presentation:
+        PresentationArticleCopiee.create(
+            request=None,
+            article=article,
+            presentation=matching_article.user_content.presentation,
+        )
+        has_changed = True
+    return has_changed

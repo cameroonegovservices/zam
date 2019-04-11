@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 
 import responses
+import transaction
 from webtest.forms import Select
 
 
@@ -235,6 +236,19 @@ def test_post_form_senat_2019(app, user_david):
     result = "Sénat, session 2018-2019, Séance publique, Première lecture, texte nº 106"
     assert str(lecture) == result
 
+    # We should have an event entry for articles, and one for amendements
+    assert len(lecture.events) == 2
+    assert lecture.events[0].render_summary() == "2 nouveaux amendements récupérés."
+    assert (
+        lecture.events[1].render_summary() == "Le contenu des articles a été récupéré."
+    )
+
+    # We should have articles from the page (1) and from the amendements (19, 29)
+    assert {article.num for article in lecture.articles} == {"1", "19", "29"}
+
+    # We should have loaded 2 amendements
+    assert [amdt.num for amdt in lecture.amendements] == [629, 1]
+
 
 @responses.activate
 def test_post_form_already_exists(app, texte_an, lecture_an, user_david):
@@ -267,7 +281,180 @@ def test_choices_lectures(app, user_david):
 
     assert resp.status_code == 200
     assert resp.headers["content-type"] == "application/json"
-    label = "Assemblée nationale – Première lecture – Titre lecture – Texte Nº 269"
+    label_an = "Assemblée nationale – Première lecture – Titre lecture – Texte Nº 269"
+    label_senat = "Sénat – Première lecture – Titre lecture – Texte Nº 63"
     assert resp.json == {
-        "lectures": [{"key": "PRJLANR5L15B0269-PO717460-", "label": label}]
+        "lectures": [
+            {"key": "PRJLANR5L15B0269-PO717460-", "label": label_an},
+            {"key": "PRJLSNR5S299B0063-PO78718-", "label": label_senat},
+        ]
     }
+
+
+@responses.activate
+def test_new_lecture_creation_duplicates_jaunes_from_previous_one(app, user_david):
+    from zam_repondeur.models import DBSession, Lecture
+
+    assert not DBSession.query(Lecture).all()
+
+    responses.add(
+        responses.GET,
+        "http://www.assemblee-nationale.fr/eloi/15/amendements/0269/AN/liste.xml",
+        body=read_sample_data("an/269/liste.xml"),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "http://www.assemblee-nationale.fr/15/xml/amendements/0269/AN/177.xml",
+        body=read_sample_data("an/269/177.xml"),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "http://www.assemblee-nationale.fr/15/xml/amendements/0269/AN/270.xml",
+        body=read_sample_data("an/269/270.xml"),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "http://www.assemblee-nationale.fr/15/xml/amendements/0269/AN/723.xml",
+        body=read_sample_data("an/269/723.xml"),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "http://www.assemblee-nationale.fr/15/xml/amendements/0269/AN/135.xml",
+        body=read_sample_data("an/269/135.xml"),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "http://www.assemblee-nationale.fr/15/xml/amendements/0269/AN/192.xml",
+        body=read_sample_data("an/269/192.xml"),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        re.compile(
+            r"http://www\.assemblee-nationale\.fr/15/xml/amendements/0269/AN/\d+\.xml"
+        ),
+        status=404,
+    )
+
+    responses.add(
+        responses.GET,
+        "http://www.assemblee-nationale.fr/15/projets/pl0269.asp",
+        body=(HERE.parent / "sample_data" / "pl0269.html").read_text("utf-8", "ignore"),
+        status=200,
+    )
+
+    # We cannot use form.submit() given the form is dynamic and does not
+    # contain choices for lectures (dynamically loaded via JS).
+    resp = app.post(
+        "/lectures/add",
+        {"dossier": "DLR5L15N36030", "lecture": "PRJLANR5L15B0269-PO717460-"},
+        user=user_david,
+    )
+    resp = resp.follow()
+
+    assert resp.status_code == 200
+    assert "Lecture créée avec succès," in resp.text
+
+    lecture = Lecture.get(
+        chambre="an",
+        session_or_legislature="15",
+        num_texte=269,
+        partie=None,
+        organe="PO717460",
+    )
+
+    # We should have articles from the page (1, 2) and from the amendements (3, 8, 9)
+    assert {article.num for article in lecture.articles} == {"1", "2", "3", "8", "9"}
+
+    # We set title + presentation (jaune) for the first article.
+    article_1 = lecture.articles[0]
+    assert article_1.num == "1"
+    with transaction.manager:
+        article_1.user_content.title = "User content title"
+        article_1.user_content.presentation = "User content presentation"
+        DBSession.add(article_1)
+
+    # Then we create the senat lecture from the same dossier legislatif.
+    responses.add(
+        responses.GET,
+        "https://www.senat.fr/amendements/2017-2018/63/jeu_complet_2017-2018_63.csv",
+        body=(
+            HERE.parent
+            / "fetch"
+            / "sample_data"
+            / "senat"
+            / "jeu_complet_2017-2018_63.csv"
+        ).read_bytes(),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "https://www.senat.fr/enseance/2017-2018/63/liste_discussion.json",
+        body=(
+            HERE.parent / "fetch" / "sample_data" / "senat" / "liste_discussion_63.json"
+        ).read_bytes(),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "https://www.senat.fr/leg/pjl17-063.html",
+        body=(HERE.parent / "sample_data" / "pjl17-063.html").read_text(
+            "utf-8", "ignore"
+        ),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "https://data.senat.fr/data/senateurs/ODSEN_GENERAL.csv",
+        body=(
+            HERE.parent / "fetch" / "sample_data" / "senat" / "ODSEN_GENERAL.csv"
+        ).read_bytes(),
+        status=200,
+    )
+
+    # We cannot use form.submit() given the form is dynamic and does not
+    # contain choices for lectures (dynamically loaded via JS).
+    resp = app.post(
+        "/lectures/add",
+        {"dossier": "DLR5L15N36030", "lecture": "PRJLSNR5S299B0063-PO78718-"},
+        user=user_david,
+    )
+
+    resp = resp.follow()
+
+    assert resp.status_code == 200
+    assert "Lecture créée avec succès," in resp.text
+
+    lecture = Lecture.get(
+        chambre="senat",
+        session_or_legislature="2017-2018",
+        num_texte=63,
+        partie=None,
+        organe="PO78718",
+    )
+
+    # We should have title + presentation (jaune) inherited from AN lecture.
+    article_1 = [art for art in lecture.articles if art.num == "1"][0]
+    assert article_1.num == "1"
+    assert article_1.user_content.title == "User content title"
+    assert article_1.user_content.presentation == "User content presentation"
+
+    # We should have dedicated event entries for user content copies.
+    assert len(article_1.events) == 3
+    assert (
+        article_1.events[0].render_summary()
+        == "La présentation de l’article a été copiée depuis une précédente lecture"
+    )
+    assert (
+        article_1.events[1].render_summary()
+        == "Le titre de l’article a été copié depuis une précédente lecture"
+    )
+    assert (
+        article_1.events[2].render_summary()
+        == "Le contenu de l’article a été modifié par les services du Sénat"
+    )

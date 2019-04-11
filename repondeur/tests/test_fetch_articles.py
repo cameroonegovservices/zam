@@ -289,7 +289,9 @@ class TestGetArticlesAN:
         assert article.content == {}
 
     @responses.activate
-    def test_fallback_to_alternative_url_pattern(self, app, lecture_an, amendements_an):
+    def test_fallback_to_alternative_url_pattern(
+        self, app, dossier_an, lecture_an, amendements_an
+    ):
         from zam_repondeur.fetch.articles import get_articles
         from zam_repondeur.models import DBSession, Amendement
 
@@ -328,7 +330,10 @@ class TestGetArticlesAN:
             status=200,
         )
 
-        changed = get_articles(lecture_an)
+        with transaction.manager:
+            DBSession.add(dossier_an)
+            DBSession.add(lecture_an)
+            changed = get_articles(lecture_an)
 
         assert changed
 
@@ -369,7 +374,7 @@ class TestGetArticlesAN:
 class TestGetArticlesSenat:
     @responses.activate
     def test_get_articles_senat(
-        self, app, lecture_senat, amendements_senat, article1_an
+        self, app, dossier_senat, lecture_senat, amendements_senat, article1_an
     ):
         from zam_repondeur.fetch.articles import get_articles
         from zam_repondeur.models import DBSession, Amendement, Article
@@ -387,7 +392,10 @@ class TestGetArticlesSenat:
             status=200,
         )
 
-        changed = get_articles(lecture_senat)
+        with transaction.manager:
+            DBSession.add(dossier_senat)
+            DBSession.add(lecture_senat)
+            changed = get_articles(lecture_senat)
 
         assert changed
 
@@ -421,7 +429,9 @@ class TestGetArticlesSenat:
         )
 
     @responses.activate
-    def test_get_articles_senat_with_mult(self, app, lecture_senat, amendements_senat):
+    def test_get_articles_senat_with_mult(
+        self, app, dossier_senat, lecture_senat, amendements_senat
+    ):
         from zam_repondeur.fetch.articles import get_articles
         from zam_repondeur.models import DBSession, Amendement
 
@@ -443,8 +453,9 @@ class TestGetArticlesSenat:
             # a previous transaction, so we add them to the current session to make sure
             # that our changes will be committed with the current transaction
             DBSession.add(amendement)
-
-        changed = get_articles(lecture_senat)
+            DBSession.add(dossier_senat)
+            DBSession.add(lecture_senat)
+            changed = get_articles(lecture_senat)
 
         assert changed
 
@@ -452,7 +463,9 @@ class TestGetArticlesSenat:
         assert amendement.article.content["001"].startswith("Ne donnent pas lieu à")
 
     @responses.activate
-    def test_get_articles_senat_with_dots(self, app, lecture_senat, amendements_senat):
+    def test_get_articles_senat_with_dots(
+        self, app, dossier_senat, lecture_senat, amendements_senat
+    ):
         from zam_repondeur.fetch.articles import get_articles
         from zam_repondeur.models import DBSession, Amendement
 
@@ -465,7 +478,10 @@ class TestGetArticlesSenat:
             status=200,
         )
 
-        changed = get_articles(lecture_senat)
+        with transaction.manager:
+            DBSession.add(dossier_senat)
+            DBSession.add(lecture_senat)
+            changed = get_articles(lecture_senat)
 
         assert changed
 

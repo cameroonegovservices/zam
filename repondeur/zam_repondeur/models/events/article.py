@@ -137,3 +137,57 @@ class PresentationArticleModifiee(ArticleEvent):
     def apply(self) -> None:
         self.article.user_content.presentation = self.data["new_value"]
         self.article.modified_at = datetime.utcnow()
+
+
+class TitreArticleCopie(ArticleEvent):
+    __mapper_args__ = {"polymorphic_identity": "titre_article_copie"}
+
+    icon = "document"
+
+    @property
+    def summary_template(self) -> Template:
+        return Template(
+            "Le titre de l’article a été copié depuis une précédente lecture"
+        )
+
+    def __init__(
+        self, request: Request, article: Article, title: str, **kwargs: Any
+    ) -> None:
+        super().__init__(
+            request=request,
+            article=article,
+            old_value=article.user_content.title,
+            new_value=title,
+            **kwargs,
+        )
+
+    def apply(self) -> None:
+        self.article.user_content.title = self.data["new_value"]
+        self.article.modified_at = datetime.utcnow()
+
+
+class PresentationArticleCopiee(ArticleEvent):
+    __mapper_args__ = {"polymorphic_identity": "presentation_article_copiee"}
+
+    icon = "document"
+
+    @property
+    def summary_template(self) -> Template:
+        return Template(
+            "La présentation de l’article a été copiée depuis une précédente lecture"
+        )
+
+    def __init__(
+        self, request: Request, article: Article, presentation: str, **kwargs: Any
+    ) -> None:
+        super().__init__(
+            request=request,
+            article=article,
+            old_value=article.user_content.presentation,
+            new_value=presentation,
+            **kwargs,
+        )
+
+    def apply(self) -> None:
+        self.article.user_content.presentation = self.data["new_value"]
+        self.article.modified_at = datetime.utcnow()
