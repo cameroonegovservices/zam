@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Iterable, List, Optional, Tuple, TYPE_CHECKING
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, Text, desc
 from sqlalchemy.orm import joinedload, relationship
@@ -113,6 +113,14 @@ class Lecture(Base):
         else:
             partie = ""
         return f"texte nº\u00a0{self.texte.numero}{partie}"
+
+    def __eq__(self, other: Any) -> bool:
+        return bool(
+            self.chambre == other.chambre
+            and self.session == other.session
+            and self.texte.numero == other.texte.numero
+            and self.organe == other.organe
+        )
 
     def __lt__(self, other: Any) -> bool:
         if type(self) != type(other):
@@ -254,6 +262,36 @@ class Lecture(Base):
         return (
             f"{self.chambre}.{self.session}.{self.texte.numero}{partie}.{self.organe}"
         )
+
+    def _split_after(self, iterable: Iterable, predicate: Callable) -> Iterable:
+        accumulator = []
+        for item in iterable:
+            accumulator.append(item)
+            if predicate(item) and accumulator:
+                yield accumulator
+                accumulator = []
+        if accumulator:
+            yield accumulator
+
+    def _next_texte_with_lecture(self, textes: Iterable["Texte"]) -> Optional["Texte"]:
+        before, *after = self._split_after(textes, lambda t: t.pk == self.texte.pk)
+        if not after:
+            return None
+
+        textes = filter(lambda t: t.lectures, after[0])
+        return next(textes) if textes else None
+
+    @property
+    def previous(self) -> Optional["Lecture"]:
+        texte = self._next_texte_with_lecture(sorted(self.dossier.textes, reverse=True))
+        # TODO: deal with PLFSS and commissions related to the same texte as seances.
+        return texte.lectures[0] if texte else None
+
+    @property
+    def next(self) -> Optional["Lecture"]:
+        texte = self._next_texte_with_lecture(self.dossier.textes)
+        # TODO: deal with PLFSS and commissions related to the same texte as seances.
+        return texte.lectures[0] if texte else None
 
     def find_article(self, subdiv: SubDiv) -> Optional[Article]:
         article: Article
