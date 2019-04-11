@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import Any, Callable, Iterable, List, Optional, Tuple, TYPE_CHECKING
+from itertools import dropwhile
+from typing import Any, Iterable, List, Optional, Tuple, TYPE_CHECKING
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, Text, desc
 from sqlalchemy.orm import joinedload, relationship
@@ -263,23 +264,14 @@ class Lecture(Base):
             f"{self.chambre}.{self.session}.{self.texte.numero}{partie}.{self.organe}"
         )
 
-    def _split_after(self, iterable: Iterable, predicate: Callable) -> Iterable:
-        accumulator = []
-        for item in iterable:
-            accumulator.append(item)
-            if predicate(item) and accumulator:
-                yield accumulator
-                accumulator = []
-        if accumulator:
-            yield accumulator
-
     def _next_texte_with_lecture(self, textes: Iterable["Texte"]) -> Optional["Texte"]:
-        before, *after = self._split_after(textes, lambda t: t.pk == self.texte.pk)
-        if not after:
+        current_plus_next_textes = dropwhile(lambda t: t.pk != self.texte.pk, textes)
+        next_textes = list(current_plus_next_textes)[1:]
+        if not next_textes:
             return None
 
-        textes = filter(lambda t: t.lectures, after[0])
-        return next(textes) if textes else None
+        next_textes_with_lectures = filter(lambda t: t.lectures, next_textes)
+        return next(next_textes_with_lectures) if next_textes_with_lectures else None
 
     @property
     def previous(self) -> Optional["Lecture"]:
