@@ -115,6 +115,10 @@ def lecture_plf2018_an_premiere_lecture_commission_avis_2(
     return lecture
 
 
+# 6 (x 2 parties) `Commission saisie pour avis` are
+# NOT registered here for the sake of brevity.
+
+
 @pytest.fixture
 def lecture_plf2018_an_premiere_lecture_seance_publique_1(
     db, dossier_plf2018, texte_plf2018_an_premiere_lecture

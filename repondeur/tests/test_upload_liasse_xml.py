@@ -6,7 +6,9 @@ from webtest import Upload
 SAMPLE_DATA = Path(__file__).parent / "sample_data"
 
 
-def test_get_form(app, lecture_essoc, user_david):
+def test_get_form(
+    app, lecture_essoc2018_an_nouvelle_lecture_commission_fond, user_david
+):
     resp = app.get("/lectures/an.15.806.PO744107/options", user=user_david)
 
     assert resp.status_code == 200
@@ -25,10 +27,14 @@ def test_get_form(app, lecture_essoc, user_david):
     assert form.fields["upload"][0].attrs["type"] == "submit"
 
 
-def test_upload_liasse_success(app, lecture_essoc, user_david):
+def test_upload_liasse_success(
+    app, lecture_essoc2018_an_nouvelle_lecture_commission_fond, user_david
+):
     from zam_repondeur.models import Lecture
 
-    initial_modified_at = lecture_essoc.modified_at
+    initial_modified_at = (
+        lecture_essoc2018_an_nouvelle_lecture_commission_fond.modified_at
+    )
 
     resp = app.get("/lectures/an.15.806.PO744107/options", user=user_david)
     form = resp.forms["import-liasse-xml"]
@@ -43,11 +49,11 @@ def test_upload_liasse_success(app, lecture_essoc, user_david):
 
     # Check the update timestamp has been updated.
     lecture = Lecture.get(
-        chambre=lecture_essoc.chambre,
-        session_or_legislature=lecture_essoc.session,
-        num_texte=lecture_essoc.texte.numero,
+        chambre=lecture_essoc2018_an_nouvelle_lecture_commission_fond.chambre,
+        session_or_legislature=lecture_essoc2018_an_nouvelle_lecture_commission_fond.session,  # noqa
+        num_texte=lecture_essoc2018_an_nouvelle_lecture_commission_fond.texte.numero,
         partie=None,
-        organe=lecture_essoc.organe,
+        organe=lecture_essoc2018_an_nouvelle_lecture_commission_fond.organe,
     )
     assert lecture.modified_at != initial_modified_at
 
@@ -57,7 +63,9 @@ def test_upload_liasse_success(app, lecture_essoc, user_david):
     )
 
 
-def test_upload_liasse_with_table(app, lecture_essoc, user_david):
+def test_upload_liasse_with_table(
+    app, lecture_essoc2018_an_nouvelle_lecture_commission_fond, user_david
+):
     from zam_repondeur.models import Lecture
 
     resp = app.get("/lectures/an.15.806.PO744107/options", user=user_david)
@@ -74,11 +82,11 @@ def test_upload_liasse_with_table(app, lecture_essoc, user_david):
     assert "3 nouveaux amendements récupérés (import liasse XML)." in resp.text
 
     lecture = Lecture.get(
-        chambre=lecture_essoc.chambre,
-        session_or_legislature=lecture_essoc.session,
-        num_texte=lecture_essoc.texte.numero,
+        chambre=lecture_essoc2018_an_nouvelle_lecture_commission_fond.chambre,
+        session_or_legislature=lecture_essoc2018_an_nouvelle_lecture_commission_fond.session,  # noqa
+        num_texte=lecture_essoc2018_an_nouvelle_lecture_commission_fond.texte.numero,
         partie=None,
-        organe=lecture_essoc.organe,
+        organe=lecture_essoc2018_an_nouvelle_lecture_commission_fond.organe,
     )
     assert (
         "<table>\n<tbody>\n<tr>\n<td>Durée minimale de services"
@@ -90,7 +98,9 @@ def test_upload_liasse_with_table(app, lecture_essoc, user_david):
     )
 
 
-def test_upload_liasse_success_with_a_deposer(app, lecture_essoc, user_david):
+def test_upload_liasse_success_with_a_deposer(
+    app, lecture_essoc2018_an_nouvelle_lecture_commission_fond, user_david
+):
     resp = app.get("/lectures/an.15.806.PO744107/options", user=user_david)
     form = resp.forms["import-liasse-xml"]
     # The second amendement has `etat == "A déposer"` and thus is ignored.
@@ -102,10 +112,14 @@ def test_upload_liasse_success_with_a_deposer(app, lecture_essoc, user_david):
     assert "2 nouveaux amendements récupérés (import liasse XML)." in resp.text
 
 
-def test_upload_liasse_missing_file(app, lecture_essoc, user_david):
+def test_upload_liasse_missing_file(
+    app, lecture_essoc2018_an_nouvelle_lecture_commission_fond, user_david
+):
     from zam_repondeur.models import Lecture
 
-    initial_modified_at = lecture_essoc.modified_at
+    initial_modified_at = (
+        lecture_essoc2018_an_nouvelle_lecture_commission_fond.modified_at
+    )
 
     resp = app.get("/lectures/an.15.806.PO744107/options", user=user_david)
     form = resp.forms["import-liasse-xml"]
@@ -119,11 +133,11 @@ def test_upload_liasse_missing_file(app, lecture_essoc, user_david):
 
     # Check the update timestamp has NOT been updated.
     lecture = Lecture.get(
-        chambre=lecture_essoc.chambre,
-        session_or_legislature=lecture_essoc.session,
-        num_texte=lecture_essoc.texte.numero,
+        chambre=lecture_essoc2018_an_nouvelle_lecture_commission_fond.chambre,
+        session_or_legislature=lecture_essoc2018_an_nouvelle_lecture_commission_fond.session,  # noqa
+        num_texte=lecture_essoc2018_an_nouvelle_lecture_commission_fond.texte.numero,
         partie=None,
-        organe=lecture_essoc.organe,
+        organe=lecture_essoc2018_an_nouvelle_lecture_commission_fond.organe,
     )
     assert lecture.modified_at == initial_modified_at
     assert lecture.events == []

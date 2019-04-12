@@ -6,6 +6,7 @@ import pytest
 from fixtures.dossiers import mock_dossiers  # noqa: F401
 from fixtures.organes_acteurs import mock_organes_acteurs  # noqa: F401
 from fixtures.lectures import *  # noqa: F401,F403
+from fixtures.essoc2018 import *  # noqa: F401,F403
 from fixtures.plf2018 import *  # noqa: F401,F403
 from fixtures.plfss2018 import *  # noqa: F401,F403
 from fixtures.users import *  # noqa: F401,F403
