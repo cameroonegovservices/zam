@@ -75,27 +75,27 @@ class TestLectureToStr:
 def test_lecture_previous_lecture(
     db,
     dossier_plfss2018,
-    lecture_plfss2018_an_premiere_lecture,
-    lecture_plfss2018_senat_premiere_lecture,
-    lecture_plfss2018_an_seconde_lecture,
-    lecture_plfss2018_senat_seconde_lecture,
+    lecture_plfss2018_an_premiere_lecture_seance_publique,
+    lecture_plfss2018_senat_premiere_lecture_seance_publique,
+    lecture_plfss2018_an_nouvelle_lecture_seance_publique,
+    lecture_plfss2018_senat_nouvelle_lecture_seance_publique,
 ):
     from zam_repondeur.models import DBSession
 
     with transaction.manager:
         DBSession.add(dossier_plfss2018)
-        assert lecture_plfss2018_an_premiere_lecture.previous is None
+        assert lecture_plfss2018_an_premiere_lecture_seance_publique.previous is None
         assert (
-            lecture_plfss2018_senat_premiere_lecture.previous
-            == lecture_plfss2018_an_premiere_lecture
+            lecture_plfss2018_senat_premiere_lecture_seance_publique.previous
+            == lecture_plfss2018_an_premiere_lecture_seance_publique
         )
         assert (
-            lecture_plfss2018_an_seconde_lecture.previous
-            == lecture_plfss2018_senat_premiere_lecture
+            lecture_plfss2018_an_nouvelle_lecture_seance_publique.previous
+            == lecture_plfss2018_senat_premiere_lecture_seance_publique
         )
         assert (
-            lecture_plfss2018_senat_seconde_lecture.previous
-            == lecture_plfss2018_an_seconde_lecture
+            lecture_plfss2018_senat_nouvelle_lecture_seance_publique.previous
+            == lecture_plfss2018_an_nouvelle_lecture_seance_publique
         )
 
 
@@ -103,67 +103,67 @@ def test_lecture_previous_lecture_with_gaps(
     db,
     dossier_plfss2018,
     # Only textes are imported for Senat, no existing lecture.
-    lecture_plfss2018_an_premiere_lecture,
+    lecture_plfss2018_an_premiere_lecture_seance_publique,
     texte_plfss2018_senat_premiere_lecture,
-    lecture_plfss2018_an_seconde_lecture,
-    texte_plfss2018_senat_seconde_lecture,
+    lecture_plfss2018_an_nouvelle_lecture_seance_publique,
+    texte_plfss2018_senat_nouvelle_lecture,
 ):
     from zam_repondeur.models import DBSession
 
     with transaction.manager:
         DBSession.add(dossier_plfss2018)
-        assert lecture_plfss2018_an_premiere_lecture.previous is None
+        assert lecture_plfss2018_an_premiere_lecture_seance_publique.previous is None
         assert (
-            lecture_plfss2018_an_seconde_lecture.previous
-            == lecture_plfss2018_an_premiere_lecture
+            lecture_plfss2018_an_nouvelle_lecture_seance_publique.previous
+            == lecture_plfss2018_an_premiere_lecture_seance_publique
         )
 
 
 def test_lecture_next_lecture(
     db,
     dossier_plfss2018,
-    lecture_plfss2018_an_premiere_lecture,
-    lecture_plfss2018_senat_premiere_lecture,
-    lecture_plfss2018_an_seconde_lecture,
-    lecture_plfss2018_senat_seconde_lecture,
+    lecture_plfss2018_an_premiere_lecture_seance_publique,
+    lecture_plfss2018_senat_premiere_lecture_seance_publique,
+    lecture_plfss2018_an_nouvelle_lecture_seance_publique,
+    lecture_plfss2018_senat_nouvelle_lecture_seance_publique,
 ):
     from zam_repondeur.models import DBSession
 
     with transaction.manager:
         DBSession.add(dossier_plfss2018)
         assert (
-            lecture_plfss2018_an_premiere_lecture.next
-            == lecture_plfss2018_senat_premiere_lecture
+            lecture_plfss2018_an_premiere_lecture_seance_publique.next
+            == lecture_plfss2018_senat_premiere_lecture_seance_publique
         )
         assert (
-            lecture_plfss2018_senat_premiere_lecture.next
-            == lecture_plfss2018_an_seconde_lecture
+            lecture_plfss2018_senat_premiere_lecture_seance_publique.next
+            == lecture_plfss2018_an_nouvelle_lecture_seance_publique
         )
         assert (
-            lecture_plfss2018_an_seconde_lecture.next
-            == lecture_plfss2018_senat_seconde_lecture
+            lecture_plfss2018_an_nouvelle_lecture_seance_publique.next
+            == lecture_plfss2018_senat_nouvelle_lecture_seance_publique
         )
-        assert lecture_plfss2018_senat_seconde_lecture.next is None
+        assert lecture_plfss2018_senat_nouvelle_lecture_seance_publique.next is None
 
 
 def test_lecture_next_lecture_with_gaps(
     db,
     dossier_plfss2018,
     # Only textes are imported for Senat, no existing lecture.
-    lecture_plfss2018_an_premiere_lecture,
+    lecture_plfss2018_an_premiere_lecture_seance_publique,
     texte_plfss2018_senat_premiere_lecture,
-    lecture_plfss2018_an_seconde_lecture,
-    texte_plfss2018_senat_seconde_lecture,
+    lecture_plfss2018_an_nouvelle_lecture_seance_publique,
+    texte_plfss2018_senat_nouvelle_lecture,
 ):
     from zam_repondeur.models import DBSession
 
     with transaction.manager:
         DBSession.add(dossier_plfss2018)
         assert (
-            lecture_plfss2018_an_premiere_lecture.next
-            == lecture_plfss2018_an_seconde_lecture
+            lecture_plfss2018_an_premiere_lecture_seance_publique.next
+            == lecture_plfss2018_an_nouvelle_lecture_seance_publique
         )
-        assert lecture_plfss2018_an_seconde_lecture.next is None
+        assert lecture_plfss2018_an_nouvelle_lecture_seance_publique.next is None
 
 
 def test_lecture_no_previous_or_next(
@@ -172,12 +172,12 @@ def test_lecture_no_previous_or_next(
     texte_plfss2018_an_premiere_lecture,
     texte_plfss2018_senat_premiere_lecture,
     # Only textes are imported for others, no other existing lecture.
-    lecture_plfss2018_an_seconde_lecture,
-    texte_plfss2018_senat_seconde_lecture,
+    lecture_plfss2018_an_nouvelle_lecture_seance_publique,
+    texte_plfss2018_senat_nouvelle_lecture,
 ):
     from zam_repondeur.models import DBSession
 
     with transaction.manager:
         DBSession.add(dossier_plfss2018)
-        assert lecture_plfss2018_an_seconde_lecture.previous is None
-        assert lecture_plfss2018_an_seconde_lecture.next is None
+        assert lecture_plfss2018_an_nouvelle_lecture_seance_publique.previous is None
+        assert lecture_plfss2018_an_nouvelle_lecture_seance_publique.next is None

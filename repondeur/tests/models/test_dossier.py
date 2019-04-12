@@ -7,10 +7,10 @@ def test_dossier_has_ordered_textes_by_date_depot(
     db,
     dossier_plfss2018,
     # Fixtures are not in the correct order intentionnaly.
-    lecture_plfss2018_an_seconde_lecture,
-    lecture_plfss2018_senat_premiere_lecture,
-    lecture_plfss2018_senat_seconde_lecture,
-    lecture_plfss2018_an_premiere_lecture,
+    lecture_plfss2018_an_nouvelle_lecture_seance_publique,
+    lecture_plfss2018_senat_premiere_lecture_seance_publique,
+    lecture_plfss2018_senat_nouvelle_lecture_seance_publique,
+    lecture_plfss2018_an_premiere_lecture_seance_publique,
 ):
     from zam_repondeur.models import DBSession
 
