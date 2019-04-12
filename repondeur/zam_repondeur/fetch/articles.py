@@ -227,12 +227,15 @@ def copy_user_content_from_previous_lecture(
         return False
     matching_article = matching_articles[0]
     has_changed = False
-    if not article.user_content.title:
+    if not article.user_content.title and matching_article.user_content.title:
         TitreArticleCopie.create(
             request=None, article=article, title=matching_article.user_content.title
         )
         has_changed = True
-    if not article.user_content.presentation:
+    if (
+        not article.user_content.presentation
+        and matching_article.user_content.presentation
+    ):
         PresentationArticleCopiee.create(
             request=None,
             article=article,
