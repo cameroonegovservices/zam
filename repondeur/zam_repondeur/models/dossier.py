@@ -37,4 +37,4 @@ class Dossier(Base):
 
     @property
     def textes(self) -> Iterable["Texte"]:
-        return sorted(lecture.texte for lecture in self.lectures)
+        return sorted({lecture.texte for lecture in self.lectures})

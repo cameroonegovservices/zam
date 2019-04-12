@@ -277,12 +277,14 @@ class Lecture(Base):
     def previous(self) -> Optional["Lecture"]:
         texte = self._next_texte_with_lecture(sorted(self.dossier.textes, reverse=True))
         # TODO: deal with PLFSS and commissions related to the same texte as seances.
+        # TODO: deal with PLF and parties
         return texte.lectures[0] if texte else None
 
     @property
     def next(self) -> Optional["Lecture"]:
         texte = self._next_texte_with_lecture(self.dossier.textes)
         # TODO: deal with PLFSS and commissions related to the same texte as seances.
+        # TODO: deal with PLF and parties
         return texte.lectures[0] if texte else None
 
     def find_article(self, subdiv: SubDiv) -> Optional[Article]:
