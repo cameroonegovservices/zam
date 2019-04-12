@@ -159,7 +159,9 @@ def test_import_liasse_xml_with_known_but_missing_parent(
     assert errors == []
 
 
-def test_import_liasse_second_part(app, texte_commission_speciale, dossier_an):
+def test_import_liasse_second_part(
+    app, dossier_essoc2018, texte_essoc2018_an_nouvelle_lecture_commission_fond
+):
     from zam_repondeur.fetch.an.liasse_xml import import_liasse_xml, LectureDoesNotMatch
     from zam_repondeur.models import DBSession, Lecture
 
@@ -167,20 +169,20 @@ def test_import_liasse_second_part(app, texte_commission_speciale, dossier_an):
         part1 = Lecture.create(
             chambre="an",
             session="15",
-            texte=texte_commission_speciale,
+            texte=texte_essoc2018_an_nouvelle_lecture_commission_fond,
             partie=1,
             titre="Nouvelle lecture – Titre lecture",
             organe="PO744107",
-            dossier=dossier_an,
+            dossier=dossier_essoc2018,
         )
         part2 = Lecture.create(
             chambre="an",
             session="15",
-            texte=texte_commission_speciale,
+            texte=texte_essoc2018_an_nouvelle_lecture_commission_fond,
             partie=2,
             titre="Nouvelle lecture – Titre lecture",
             organe="PO744107",
-            dossier=dossier_an,
+            dossier=dossier_essoc2018,
         )
 
     DBSession.add(part2)

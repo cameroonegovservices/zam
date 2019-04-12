@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from operator import attrgetter
 from pathlib import Path
 
@@ -25,6 +26,26 @@ def dossier_plf(db):
         )
 
     return dossier
+
+
+@pytest.fixture
+def texte_senat(db):
+    # TODO: reuse existing texte or better, create fixtures for PLF2019.
+    from zam_repondeur.models import Chambre, Texte, TypeTexte
+
+    with transaction.manager:
+        texte = Texte.create(
+            uid="baz",
+            type_=TypeTexte.PROJET,
+            chambre=Chambre.SENAT,
+            session=2017,
+            numero=63,
+            titre_long="long",
+            titre_court="court",
+            date_depot=date(2017, 10, 11),
+        )
+
+    return texte
 
 
 @responses.activate

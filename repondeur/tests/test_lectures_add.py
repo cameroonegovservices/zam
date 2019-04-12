@@ -251,11 +251,17 @@ def test_post_form_senat_2019(app, user_david):
 
 
 @responses.activate
-def test_post_form_already_exists(app, texte_an, lecture_an, user_david):
+def test_post_form_already_exists(
+    app, texte_plfss2018_an_premiere_lecture, lecture_an, user_david
+):
     from zam_repondeur.models import Lecture
 
     assert Lecture.exists(
-        chambre="an", session="15", texte=texte_an, partie=None, organe="PO717460"
+        chambre="an",
+        session="15",
+        texte=texte_plfss2018_an_premiere_lecture,
+        partie=None,
+        organe="PO717460",
     )
 
     # We cannot use form.submit() given the form is dynamic and does not

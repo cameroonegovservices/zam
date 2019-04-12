@@ -7,10 +7,10 @@ import transaction
 
 
 class TestGetPossibleUrls:
-    def test_assemblee_nationale_pjl(self, texte_an):
+    def test_assemblee_nationale_pjl(self, texte_plfss2018_an_premiere_lecture):
         from zam_repondeur.fetch.articles import get_possible_texte_urls
 
-        assert get_possible_texte_urls(texte_an) == [
+        assert get_possible_texte_urls(texte_plfss2018_an_premiere_lecture) == [
             "http://www.assemblee-nationale.fr/15/projets/pl0269.asp",
             "http://www.assemblee-nationale.fr/15/ta-commission/r0269-a0.asp",
         ]
@@ -36,10 +36,10 @@ class TestGetPossibleUrls:
             "http://www.assemblee-nationale.fr/15/ta-commission/r0269-a0.asp",
         ]
 
-    def test_senat_pjl(self, texte_senat):
+    def test_senat_pjl(self, texte_plfss2018_senat_premiere_lecture):
         from zam_repondeur.fetch.articles import get_possible_texte_urls
 
-        assert get_possible_texte_urls(texte_senat) == [
+        assert get_possible_texte_urls(texte_plfss2018_senat_premiere_lecture) == [
             "https://www.senat.fr/leg/pjl17-063.html"
         ]
 
@@ -290,7 +290,7 @@ class TestGetArticlesAN:
 
     @responses.activate
     def test_fallback_to_alternative_url_pattern(
-        self, app, dossier_an, lecture_an, amendements_an
+        self, app, dossier_plfss2018, lecture_an, amendements_an
     ):
         from zam_repondeur.fetch.articles import get_articles
         from zam_repondeur.models import DBSession, Amendement
@@ -331,7 +331,7 @@ class TestGetArticlesAN:
         )
 
         with transaction.manager:
-            DBSession.add(dossier_an)
+            DBSession.add(dossier_plfss2018)
             DBSession.add(lecture_an)
             changed = get_articles(lecture_an)
 
@@ -374,7 +374,7 @@ class TestGetArticlesAN:
 class TestGetArticlesSenat:
     @responses.activate
     def test_get_articles_senat(
-        self, app, dossier_senat, lecture_senat, amendements_senat, article1_an
+        self, app, dossier_plfss2018, lecture_senat, amendements_senat, article1_an
     ):
         from zam_repondeur.fetch.articles import get_articles
         from zam_repondeur.models import DBSession, Amendement, Article
@@ -393,7 +393,7 @@ class TestGetArticlesSenat:
         )
 
         with transaction.manager:
-            DBSession.add(dossier_senat)
+            DBSession.add(dossier_plfss2018)
             DBSession.add(lecture_senat)
             changed = get_articles(lecture_senat)
 
@@ -430,7 +430,7 @@ class TestGetArticlesSenat:
 
     @responses.activate
     def test_get_articles_senat_with_mult(
-        self, app, dossier_senat, lecture_senat, amendements_senat
+        self, app, dossier_plfss2018, lecture_senat, amendements_senat
     ):
         from zam_repondeur.fetch.articles import get_articles
         from zam_repondeur.models import DBSession, Amendement
@@ -453,7 +453,7 @@ class TestGetArticlesSenat:
             # a previous transaction, so we add them to the current session to make sure
             # that our changes will be committed with the current transaction
             DBSession.add(amendement)
-            DBSession.add(dossier_senat)
+            DBSession.add(dossier_plfss2018)
             DBSession.add(lecture_senat)
             changed = get_articles(lecture_senat)
 
@@ -464,7 +464,7 @@ class TestGetArticlesSenat:
 
     @responses.activate
     def test_get_articles_senat_with_dots(
-        self, app, dossier_senat, lecture_senat, amendements_senat
+        self, app, dossier_plfss2018, lecture_senat, amendements_senat
     ):
         from zam_repondeur.fetch.articles import get_articles
         from zam_repondeur.models import DBSession, Amendement
@@ -479,7 +479,7 @@ class TestGetArticlesSenat:
         )
 
         with transaction.manager:
-            DBSession.add(dossier_senat)
+            DBSession.add(dossier_plfss2018)
             DBSession.add(lecture_senat)
             changed = get_articles(lecture_senat)
 
