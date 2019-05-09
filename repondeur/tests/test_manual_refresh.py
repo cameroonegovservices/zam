@@ -51,7 +51,6 @@ def test_post_form(app, lecture_an, article1_an, user_david):
             ("192", read_sample_data("an/269/192.xml")),
         ),
     ) as mock_resp:
-
         mock_resp.add(
             responses.GET,
             "http://www.assemblee-nationale.fr/15/projets/pl0269.asp",

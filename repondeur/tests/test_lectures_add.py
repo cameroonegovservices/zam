@@ -60,10 +60,25 @@ def test_post_form(app, user_david):
 
     assert not DBSession.query(Lecture).all()
 
+    # All responses are duplicated to handle the initial dry run
+    # when fetching amendements. In real life, it would put URLs in cache
+    # but that is not the case when we are running tests.
     responses.add(
         responses.GET,
         "http://www.assemblee-nationale.fr/eloi/15/amendements/0269/AN/liste.xml",
         body=read_sample_data("an/269/liste.xml"),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "http://www.assemblee-nationale.fr/eloi/15/amendements/0269/AN/liste.xml",
+        body=read_sample_data("an/269/liste.xml"),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "http://www.assemblee-nationale.fr/15/xml/amendements/0269/AN/177.xml",
+        body=read_sample_data("an/269/177.xml"),
         status=200,
     )
     responses.add(
@@ -80,6 +95,18 @@ def test_post_form(app, user_david):
     )
     responses.add(
         responses.GET,
+        "http://www.assemblee-nationale.fr/15/xml/amendements/0269/AN/270.xml",
+        body=read_sample_data("an/269/270.xml"),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "http://www.assemblee-nationale.fr/15/xml/amendements/0269/AN/723.xml",
+        body=read_sample_data("an/269/723.xml"),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
         "http://www.assemblee-nationale.fr/15/xml/amendements/0269/AN/723.xml",
         body=read_sample_data("an/269/723.xml"),
         status=200,
@@ -88,6 +115,18 @@ def test_post_form(app, user_david):
         responses.GET,
         "http://www.assemblee-nationale.fr/15/xml/amendements/0269/AN/135.xml",
         body=read_sample_data("an/269/135.xml"),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "http://www.assemblee-nationale.fr/15/xml/amendements/0269/AN/135.xml",
+        body=read_sample_data("an/269/135.xml"),
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "http://www.assemblee-nationale.fr/15/xml/amendements/0269/AN/192.xml",
+        body=read_sample_data("an/269/192.xml"),
         status=200,
     )
     responses.add(

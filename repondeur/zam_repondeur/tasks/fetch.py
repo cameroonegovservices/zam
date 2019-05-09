@@ -38,24 +38,32 @@ def fetch_articles(lecture_pk: int) -> None:
 
 @huey.task(retries=3, retry_delay=RETRY_DELAY)
 def fetch_amendements(lecture_pk: int) -> None:
-    with transaction.manager, huey.lock_task(f"fetch-{lecture_pk}"):
+    with transaction.manager:
         lecture = DBSession.query(Lecture).with_for_update().get(lecture_pk)
         if lecture is None:
             logger.error(f"Lecture {lecture_pk} introuvable")
             return
 
-        amendements, created, errored = get_amendements(lecture)
+        # First a dry run to put target URLs into requests cached session.
+        amendements, created, errored = get_amendements(lecture, dry_run=True)
 
-        if not amendements:
-            AmendementsNonTrouves.create(request=None, lecture=lecture)
+        # Then perform a locked run to actually update data,
+        # the idea is to minimize the duration of the lock.
+        with huey.lock_task(f"fetch-{lecture_pk}"):
+            amendements, created, errored = get_amendements(lecture)
 
-        if created:
-            AmendementsRecuperes.create(request=None, lecture=lecture, count=created)
+            if not amendements:
+                AmendementsNonTrouves.create(request=None, lecture=lecture)
 
-        if errored:
-            AmendementsNonRecuperes.create(
-                request=None, lecture=lecture, missings=errored
-            )
+            if created:
+                AmendementsRecuperes.create(
+                    request=None, lecture=lecture, count=created
+                )
 
-        if amendements and not (created or errored):
-            AmendementsAJour.create(request=None, lecture=lecture)
+            if errored:
+                AmendementsNonRecuperes.create(
+                    request=None, lecture=lecture, missings=errored
+                )
+
+            if amendements and not (created or errored):
+                AmendementsAJour.create(request=None, lecture=lecture)
