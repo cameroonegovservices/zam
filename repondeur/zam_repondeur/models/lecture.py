@@ -241,7 +241,9 @@ class Lecture(Base, LastEventMixin):
         )
 
     def _next_texte_with_lecture(self, textes: Iterable["Texte"]) -> Optional["Texte"]:
-        current_plus_next_textes = dropwhile(lambda t: t.pk != self.texte.pk, textes)
+        current_plus_next_textes = dropwhile(
+            lambda t: bool(t.pk != self.texte.pk), textes
+        )
         next_textes = list(current_plus_next_textes)[1:]
         if not next_textes:
             return None
