@@ -3,8 +3,8 @@ from contextlib import contextmanager
 
 import pytest
 
-from fixtures.dossiers import mock_dossiers  # noqa: F401
-from fixtures.organes_acteurs import mock_organes_acteurs  # noqa: F401
+from fixtures.dossiers import *  # noqa: F401,F403
+from fixtures.organes_acteurs import *  # noqa: F401,F403
 from fixtures.lectures import *  # noqa: F401,F403
 from fixtures.essoc2018 import *  # noqa: F401,F403
 from fixtures.plf2018 import *  # noqa: F401,F403
@@ -59,9 +59,7 @@ def settings():
         "zam.auth_secret": "dummier",
         # Only wait for 1 second to speed up integration tests.
         "zam.check_for.amendement_stolen_while_editing": 1,
-        "zam.check_for.content_updated_during_seance": 1,
         "zam.check_for.transfers_from_to_my_table": 1,
-        "zam.check_for.index_updates": 1,
     }
 
 

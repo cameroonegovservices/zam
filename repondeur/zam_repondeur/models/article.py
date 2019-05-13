@@ -62,7 +62,7 @@ class ArticleUserContent(Base):
     title: Optional[str] = Column(Text, nullable=True)
     presentation: Optional[str] = Column(Text, nullable=True)
 
-    article_pk: int = Column(Integer, ForeignKey("articles.pk"))
+    article_pk: int = Column(Integer, ForeignKey("articles.pk"), nullable=False)
     article: "Article" = relationship("Article", back_populates="user_content")
 
 
@@ -75,7 +75,6 @@ class Article(Base):
 
     pk: int = Column(Integer, primary_key=True)
     created_at: datetime = Column(DateTime, nullable=False)
-    modified_at: datetime = Column(DateTime, nullable=False)
 
     lecture_pk: int = Column(Integer, ForeignKey("lectures.pk"), nullable=False)
     lecture: "Lecture" = relationship("Lecture", back_populates="articles")
@@ -90,8 +89,20 @@ class Article(Base):
         order_by=(Amendement.position, Amendement.num),
         back_populates="article",
     )
+
     user_content = relationship(
-        ArticleUserContent, back_populates="article", uselist=False, lazy="joined"
+        ArticleUserContent,
+        back_populates="article",
+        uselist=False,
+        lazy="joined",
+        cascade="all, delete-orphan",
+    )
+
+    events = relationship(
+        "Event",
+        order_by="Event.created_at.desc()",
+        cascade="all, delete-orphan",
+        backref="article",
     )
 
     @validates("type")
@@ -109,29 +120,6 @@ class Article(Base):
             and self.mult == subdiv.mult
             and self.pos == subdiv.pos
         )
-
-    @property
-    def modified_at_timestamp(self) -> float:
-        timestamp: float = (self.modified_at - datetime(1970, 1, 1)).total_seconds()
-        return timestamp
-
-    @property
-    def modified_amendements_at_timestamp(self) -> float:
-        if not self.amendements:
-            return 0
-        max_modified_at: float = max(
-            amendement.modified_at_timestamp for amendement in self.amendements
-        )
-        return max_modified_at
-
-    def modified_amendements_numbers_since(self, timestamp: float) -> List[str]:
-        if not self.amendements:
-            return []
-        return [
-            str(amendement)
-            for amendement in self.amendements
-            if amendement.modified_at_timestamp > timestamp
-        ]
 
     __repr_keys__ = ("pk", "lecture_pk", "type", "num", "mult", "pos")
 
@@ -233,7 +221,6 @@ class Article(Base):
             pos=pos,
             content=content,
             created_at=now,
-            modified_at=now,
         )
         user_content = ArticleUserContent(article=article, title="", presentation="")
         DBSession.add(user_content)

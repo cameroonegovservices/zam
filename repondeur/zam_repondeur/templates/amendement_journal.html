@@ -1,24 +1,33 @@
 {% extends "_base.html" %}
 {% import "macros.html" as macros %}
 
+{% block title %}
+    {{ amendement.lecture }} • {{ amendement.lecture.texte.titre_court }} • Zam
+{% endblock %}
+
 {% block header %}
     <link rel="stylesheet" type="text/css" href="{{ request.static_url('zam_repondeur:static/css/journal.css') }}">
 {% endblock %}
 
 {% block extra_nav %}
     <li>
-        <a href="{{ request.resource_url(context.parent.parent['tables'], request.user.email) }}">
+        <a href="{{ request.resource_url(context.lecture_resource, 'tables', request.user.email) }}">
             Ma table
         </a>
     </li>
     <li>
-        <a href="{{ request.resource_url(context.parent.parent, 'amendements') }}">
+        <a href="{{ request.resource_url(context.lecture_resource, 'amendements') }}">
             Index
+        </a>
+    </li>
+    <li>
+        <a href="{{ request.resource_url(context.lecture_resource, 'options') }}">
+            Options avancées
         </a>
     </li>
     {% if amendement.is_displayable %}
         <li>
-            <a href="{{ request.resource_url(context.parent.parent['articles'][amendement.article.url_key], 'reponses', anchor=amendement.slug) }}" target="_blank">
+            <a href="{{ request.resource_url(context.lecture_resource, 'articles', amendement.article.url_key, 'reponses', anchor=amendement.slug) }}" target="_blank">
                 Dossier de banc
             </a>
         </li>
