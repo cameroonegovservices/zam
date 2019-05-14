@@ -121,6 +121,7 @@ class Lecture(Base, LastEventMixin):
             and self.session == other.session
             and self.texte.numero == other.texte.numero
             and self.organe == other.organe
+            and self.partie == other.partie
         )
 
     def __lt__(self, other: Any) -> bool:
@@ -241,6 +242,9 @@ class Lecture(Base, LastEventMixin):
         )
 
     def _next_texte_with_lecture(self, textes: Iterable["Texte"]) -> Optional["Texte"]:
+        if len(self.texte.lectures) > 1 and self.pk != self.texte.lectures[-1].pk:
+            return self.texte
+
         current_plus_next_textes = dropwhile(
             lambda t: bool(t.pk != self.texte.pk), textes
         )
@@ -255,8 +259,9 @@ class Lecture(Base, LastEventMixin):
     def previous(self) -> Optional["Lecture"]:
         texte = self._next_texte_with_lecture(sorted(self.dossier.textes, reverse=True))
         # TODO: deal with PLFSS and commissions related to the same texte as seances.
-        # TODO: deal with PLF and parties
-        return texte.lectures[0] if texte else None
+        if not texte:
+            return None
+        return texte.previous_lecture(self)
 
     @property
     def next(self) -> Optional["Lecture"]:

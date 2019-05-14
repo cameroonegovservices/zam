@@ -74,7 +74,7 @@ class TestLectureToStr:
         assert str(lecture) == result
 
 
-def test_lecture_previous_lecture(
+def test_lecture_plfss_previous_lecture(
     db,
     dossier_plfss2018,
     lecture_plfss2018_an_premiere_lecture_seance_publique,
@@ -98,6 +98,95 @@ def test_lecture_previous_lecture(
         assert (
             lecture_plfss2018_senat_nouvelle_lecture_seance_publique.previous
             == lecture_plfss2018_an_nouvelle_lecture_seance_publique
+        )
+
+
+def test_lecture_plf_previous_lecture(
+    db,
+    dossier_plf2018,
+    texte_plf2018_an_premiere_lecture,
+    lecture_plf2018_an_premiere_lecture_commission_fond_1,
+    lecture_plf2018_an_premiere_lecture_commission_fond_2,
+    lecture_plf2018_an_premiere_lecture_commission_avis_1,
+    lecture_plf2018_an_premiere_lecture_commission_avis_2,
+    lecture_plf2018_an_premiere_lecture_seance_publique_1,
+    lecture_plf2018_an_premiere_lecture_seance_publique_2,
+    lecture_plf2018_senat_premiere_lecture_commission_fond_1,
+    lecture_plf2018_senat_premiere_lecture_commission_fond_2,
+    lecture_plf2018_senat_premiere_lecture_seance_publique_1,
+    lecture_plf2018_senat_premiere_lecture_seance_publique_2,
+    lecture_plf2018_an_nouvelle_lecture_commission_fond,
+    lecture_plf2018_an_nouvelle_lecture_seance_publique,
+    lecture_plf2018_senat_nouvelle_lecture_commission_fond,
+    lecture_plf2018_senat_nouvelle_lecture_seance_publique,
+    lecture_plf2018_an_lecture_definitive_commission_fond,
+    lecture_plf2018_an_lecture_definitive_seance_publique,
+):
+    from zam_repondeur.models import DBSession
+
+    with transaction.manager:
+        DBSession.add(dossier_plf2018)
+        DBSession.add(texte_plf2018_an_premiere_lecture)
+        assert lecture_plf2018_an_premiere_lecture_commission_fond_1.previous is None
+        assert (
+            lecture_plf2018_an_premiere_lecture_commission_fond_2.previous
+            == lecture_plf2018_an_premiere_lecture_commission_fond_1
+        )
+        assert (
+            lecture_plf2018_an_premiere_lecture_commission_avis_1.previous
+            == lecture_plf2018_an_premiere_lecture_commission_fond_2
+        )
+        assert (
+            lecture_plf2018_an_premiere_lecture_commission_avis_2.previous
+            == lecture_plf2018_an_premiere_lecture_commission_avis_1
+        )
+        assert (
+            lecture_plf2018_an_premiere_lecture_seance_publique_1.previous
+            == lecture_plf2018_an_premiere_lecture_commission_avis_2
+        )
+        assert (
+            lecture_plf2018_an_premiere_lecture_seance_publique_2.previous
+            == lecture_plf2018_an_premiere_lecture_seance_publique_1
+        )
+        assert (
+            lecture_plf2018_senat_premiere_lecture_commission_fond_1.previous
+            == lecture_plf2018_an_premiere_lecture_seance_publique_2
+        )
+        assert (
+            lecture_plf2018_senat_premiere_lecture_commission_fond_2.previous
+            == lecture_plf2018_senat_premiere_lecture_commission_fond_1
+        )
+        assert (
+            lecture_plf2018_senat_premiere_lecture_seance_publique_1.previous
+            == lecture_plf2018_senat_premiere_lecture_commission_fond_2
+        )
+        assert (
+            lecture_plf2018_senat_premiere_lecture_seance_publique_2.previous
+            == lecture_plf2018_senat_premiere_lecture_seance_publique_1
+        )
+        assert (
+            lecture_plf2018_an_nouvelle_lecture_commission_fond.previous
+            == lecture_plf2018_senat_premiere_lecture_seance_publique_2
+        )
+        assert (
+            lecture_plf2018_an_nouvelle_lecture_seance_publique.previous
+            == lecture_plf2018_an_nouvelle_lecture_commission_fond
+        )
+        assert (
+            lecture_plf2018_senat_nouvelle_lecture_commission_fond.previous
+            == lecture_plf2018_an_nouvelle_lecture_seance_publique
+        )
+        assert (
+            lecture_plf2018_senat_nouvelle_lecture_seance_publique.previous
+            == lecture_plf2018_senat_nouvelle_lecture_commission_fond
+        )
+        assert (
+            lecture_plf2018_an_lecture_definitive_commission_fond.previous
+            == lecture_plf2018_senat_nouvelle_lecture_seance_publique
+        )
+        assert (
+            lecture_plf2018_an_lecture_definitive_seance_publique.previous
+            == lecture_plf2018_an_lecture_definitive_commission_fond
         )
 
 

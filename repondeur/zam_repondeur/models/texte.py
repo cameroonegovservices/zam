@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from itertools import dropwhile
 from typing import Optional
 import enum
 
@@ -135,3 +136,22 @@ class Texte(Base):
         )
         DBSession.add(texte)
         return texte
+
+    def previous_lecture(self, lecture: "Lecture") -> Optional["Lecture"]:
+        lectures = self.lectures
+        if not lectures:
+            return None
+
+        if lectures == [lecture]:
+            return None
+
+        current_plus_next_lectures = dropwhile(
+            lambda l: bool(l != lecture),
+            sorted(lectures, key=lambda l: l.pk, reverse=True),
+        )
+        next_lectures = list(current_plus_next_lectures)[1:]
+        if not next_lectures:
+            return None
+        if next_lectures == [lecture]:
+            return None
+        return next_lectures[0]
