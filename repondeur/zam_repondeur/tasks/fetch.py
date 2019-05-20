@@ -38,18 +38,25 @@ def fetch_articles(lecture_pk: int) -> None:
 
 @huey.task(retries=3, retry_delay=RETRY_DELAY)
 def fetch_amendements(lecture_pk: int) -> None:
-    with transaction.manager:
-        lecture = DBSession.query(Lecture).with_for_update().get(lecture_pk)
-        if lecture is None:
-            logger.error(f"Lecture {lecture_pk} introuvable")
-            return
+    with huey.lock_task(f"fetch-{lecture_pk}"):
 
         # First a dry run to put target URLs into requests cached session.
-        amendements, created, errored = get_amendements(lecture, dry_run=True)
+        with transaction.manager:
+            lecture = DBSession.query(Lecture).get(lecture_pk)
+            if lecture is None:
+                logger.error(f"Lecture {lecture_pk} introuvable")
+                return
+
+            amendements, created, errored = get_amendements(lecture, dry_run=True)
 
         # Then perform a locked run to actually update data,
-        # the idea is to minimize the duration of the lock.
-        with huey.lock_task(f"fetch-{lecture_pk}"):
+        # the idea is to minimize the duration of the lock of the lecture.
+        with transaction.manager:
+            lecture = DBSession.query(Lecture).with_for_update().get(lecture_pk)
+            if lecture is None:
+                logger.error(f"Lecture {lecture_pk} introuvable")
+                return
+
             amendements, created, errored = get_amendements(lecture)
 
             if not amendements:
