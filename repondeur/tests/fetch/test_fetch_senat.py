@@ -433,7 +433,7 @@ def test_fetch_all(lecture_senat):
         status=200,
     )
 
-    items = _fetch_all(lecture_senat)
+    items = _fetch_all(lecture_senat, dry_run=False)
 
     assert len(items) == 595
 
@@ -454,6 +454,34 @@ def test_fetch_all(lecture_senat):
 
 
 @responses.activate
+def test_fetch_all_with_dry_run(lecture_senat):
+    from zam_repondeur.fetch.senat.amendements import _fetch_all
+
+    sample_data = read_sample_data("jeu_complet_2017-2018_63.csv")
+
+    responses.add(
+        responses.GET,
+        "https://www.senat.fr/amendements/2017-2018/63/jeu_complet_2017-2018_63.csv",
+        body=sample_data,
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "https://www.senat.fr/amendements/2017-2018/63/jeu_complet_2017-2018_63.csv",
+        body=sample_data,
+        status=200,
+    )
+
+    items = _fetch_all(lecture_senat, dry_run=True)
+    assert len(items) == 0
+
+    items = _fetch_all(lecture_senat, dry_run=False)
+    assert len(items) == 595
+
+    assert items[0]["Numéro "] == "1 rect."
+
+
+@responses.activate
 def test_fetch_all_buggy_csv(lecture_senat):
     from zam_repondeur.fetch.senat.amendements import _fetch_all
 
@@ -466,7 +494,7 @@ def test_fetch_all_buggy_csv(lecture_senat):
         status=200,
     )
 
-    items = _fetch_all(lecture_senat)
+    items = _fetch_all(lecture_senat, dry_run=False)
 
     assert len(items) == 2
 
@@ -581,7 +609,7 @@ def test_fetch_all_commission(texte_senat, lecture_senat):
         status=200,
     )
 
-    items = _fetch_all(lecture_senat)
+    items = _fetch_all(lecture_senat, dry_run=False)
 
     assert len(items) == 434
 
@@ -618,7 +646,7 @@ def test_fetch_all_not_found(lecture_senat):
     )
 
     with pytest.raises(NotFound):
-        _fetch_all(lecture_senat)
+        _fetch_all(lecture_senat, dry_run=False)
 
 
 @responses.activate
