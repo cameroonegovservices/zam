@@ -6,6 +6,9 @@ import pytest
 from fixtures.dossiers import *  # noqa: F401,F403
 from fixtures.organes_acteurs import *  # noqa: F401,F403
 from fixtures.lectures import *  # noqa: F401,F403
+from fixtures.essoc2018 import *  # noqa: F401,F403
+from fixtures.plf2018 import *  # noqa: F401,F403
+from fixtures.plfss2018 import *  # noqa: F401,F403
 from fixtures.users import *  # noqa: F401,F403
 from testapp import TestApp as BaseTestApp
 
@@ -18,6 +21,10 @@ class TestApp(BaseTestApp):
     def post(self, *args, **kwargs):
         with self.auto_login(kwargs):
             return super().post(*args, **kwargs)
+
+    def post_json(self, *args, **kwargs):
+        with self.auto_login(kwargs):
+            return super().post_json(*args, **kwargs)
 
     @contextmanager
     def auto_login(self, kwargs):
@@ -51,6 +58,9 @@ def settings():
         ),
         "zam.users.redis_url": os.environ.get(
             "ZAM_TEST_USERS_REDIS_URL", "redis://localhost:6379/12"
+        ),
+        "zam.amendements.redis_url": os.environ.get(
+            "ZAM_TEST_AMENDEMENTS_REDIS_URL", "redis://localhost:6379/13"
         ),
         "zam.session_secret": "dummy",
         "zam.auth_secret": "dummier",
@@ -108,7 +118,18 @@ def users_repository():
 
 
 @pytest.fixture
-def app(wsgi_app, db, data_repository, users_repository):
+def amendements_repository():
+    from zam_repondeur.amendements import repository
+
+    repository.clear_data()
+
+    yield
+
+    repository.clear_data()
+
+
+@pytest.fixture
+def app(wsgi_app, db, data_repository, users_repository, amendements_repository):
     yield TestApp(
         wsgi_app, extra_environ={"HTTP_HOST": "zam.test", "wsgi.url_scheme": "https"}
     )

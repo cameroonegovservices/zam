@@ -25,6 +25,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import backref, relationship
 
+from zam_repondeur.amendements import repository as amendements_repository
 from zam_repondeur.constants import GROUPS_COLORS
 from zam_repondeur.decorator import reify
 
@@ -75,7 +76,7 @@ class AmendementUserContent(Base):
     reponse: Optional[str] = Column(Text, nullable=True)
     comments: Optional[str] = Column(Text, nullable=True)
 
-    amendement_pk: int = Column(Integer, ForeignKey("amendements.pk"))
+    amendement_pk: int = Column(Integer, ForeignKey("amendements.pk"), nullable=False)
     amendement: "Amendement" = relationship("Amendement", back_populates="user_content")
 
     __repr_keys__ = ("pk", "amendement_pk", "avis")
@@ -180,7 +181,18 @@ class Amendement(Base):
     )
 
     user_content = relationship(
-        AmendementUserContent, back_populates="amendement", uselist=False, lazy="joined"
+        AmendementUserContent,
+        back_populates="amendement",
+        uselist=False,
+        lazy="joined",
+        cascade="all, delete-orphan",
+    )
+
+    events = relationship(
+        "Event",
+        order_by="Event.created_at.desc()",
+        cascade="all, delete-orphan",
+        backref="amendement",
     )
 
     __repr_keys__ = ("pk", "num", "rectif", "lecture_pk", "article_pk", "parent_pk")
@@ -436,6 +448,18 @@ class Amendement(Base):
         return self.article.group_amendements(
             amdt for amdt in self.children if amdt.is_displayable
         )
+
+    @property
+    def is_being_edited(self) -> bool:
+        return bool(amendements_repository.get_last_activity_time(self.pk))
+
+    def start_editing(self) -> None:
+        if not self.user_table:
+            return
+        amendements_repository.start_editing(self.pk, self.user_table.user.pk)
+
+    def stop_editing(self) -> None:
+        amendements_repository.stop_editing(self.pk)
 
     def asdict(self) -> dict:
         result: Dict[str, Union[str, int, date]] = {

@@ -1,17 +1,33 @@
 {% extends "_base_edit.html" %}
 {% import "macros.html" as macros %}
 
+{% block title %}
+    {{ article.lecture }} • {{ article.lecture.texte.titre_court }} • Zam
+{% endblock %}
+
 {% block extra_nav %}
     <li>
-        <a href="{{ request.resource_url(context.parent.parent['tables'], request.user.email) }}">
+        <a href="{{ request.resource_url(context.lecture_resource, 'tables', request.user.email) }}">
             Ma table
         </a>
     </li>
     <li>
-        <a href="{{ request.resource_url(context.parent.parent, 'amendements') }}">
+        <a href="{{ request.resource_url(context.lecture_resource, 'amendements') }}">
             Index
         </a>
     </li>
+    <li>
+        <a href="{{ request.resource_url(context.lecture_resource, 'options') }}">
+            Options avancées
+        </a>
+    </li>
+    {% if article.lecture.displayable %}
+        <li>
+            <a href="{{ request.resource_url(context.lecture_resource, 'articles') }}" target="_blank">
+                Dossier de banc
+            </a>
+        </li>
+    {% endif %}
 {% endblock %}
 
 {% block body %}

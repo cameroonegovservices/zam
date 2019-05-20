@@ -21,7 +21,7 @@ from zam_repondeur.models import (
     User,
     get_one_or_create,
 )
-from zam_repondeur.models.events.lecture import ArticlesRecuperes
+from zam_repondeur.models.events.lecture import ArticlesRecuperes, LectureCreee
 from zam_repondeur.models.users import Team
 from zam_repondeur.resources import (
     AmendementCollection,
@@ -118,6 +118,7 @@ class LecturesAdd:
             dossier=dossier_model,
         )
         get_articles(lecture_model)
+        LectureCreee.create(self.request, lecture=lecture_model)
         ArticlesRecuperes.create(request=None, lecture=lecture_model)
         # Call to fetch_* tasks below being asynchronous, we need to make
         # sure the lecture_model already exists once and for all in the database
@@ -234,23 +235,21 @@ class TransferAmendements:
             for amendement in lecture.amendements
             if str(amendement.num) in self.amendements_nums
         ]
-        amendements_with_table_active = []
-        amendements_with_table_inactive = []
+        amendements_being_edited = []
+        amendements_not_being_edited = []
         amendements_without_table = []
         for amendement in amendements:
             if amendement.user_table:
                 if (
-                    amendement.user_table.user.is_active
+                    amendement.is_being_edited
                     and not amendement.user_table.user == self.request.user
                 ):
-                    amendements_with_table_active.append(amendement)
+                    amendements_being_edited.append(amendement)
                 else:
-                    amendements_with_table_inactive.append(amendement)
+                    amendements_not_being_edited.append(amendement)
             else:
                 amendements_without_table.append(amendement)
-        amendements_with_table = (
-            amendements_with_table_active + amendements_with_table_inactive
-        )
+        amendements_with_table = amendements_being_edited + amendements_not_being_edited
         show_transfer_to_myself = amendements_without_table or not all(
             amendement.user_table is my_table for amendement in amendements_with_table
         )
@@ -258,8 +257,8 @@ class TransferAmendements:
             "lecture": lecture,
             "amendements": amendements,
             "amendements_with_table": amendements_with_table,
-            "amendements_with_table_active": amendements_with_table_active,
-            "amendements_with_table_inactive": amendements_with_table_inactive,
+            "amendements_being_edited": amendements_being_edited,
+            "amendements_not_being_edited": amendements_not_being_edited,
             "amendements_without_table": amendements_without_table,
             "users": self.target_users,
             "from_index": int(self.from_index),

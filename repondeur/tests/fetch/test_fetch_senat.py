@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from operator import attrgetter
 from pathlib import Path
 
@@ -13,6 +14,38 @@ SAMPLE_DATA_DIR = HERE.parent / "sample_data" / "senat"
 
 def read_sample_data(basename):
     return (SAMPLE_DATA_DIR / basename).read_bytes()
+
+
+@pytest.fixture
+def dossier_plf(db):
+    from zam_repondeur.models import Dossier
+
+    with transaction.manager:
+        dossier = Dossier.create(
+            uid="DLR5L15N36733", titre="Budget : loi de finances 2019"
+        )
+
+    return dossier
+
+
+@pytest.fixture
+def texte_senat(db):
+    # TODO: reuse existing texte or better, create fixtures for PLF2019.
+    from zam_repondeur.models import Chambre, Texte, TypeTexte
+
+    with transaction.manager:
+        texte = Texte.create(
+            uid="baz",
+            type_=TypeTexte.PROJET,
+            chambre=Chambre.SENAT,
+            session=2017,
+            numero=63,
+            titre_long="long",
+            titre_court="court",
+            date_depot=date(2017, 10, 11),
+        )
+
+    return texte
 
 
 @responses.activate
@@ -260,7 +293,7 @@ def test_aspire_senat_again_with_irrecevable_transfers_to_index(
 
 
 @responses.activate
-def test_aspire_senat_plf2019_1re_partie(app, texte_senat, dossier_senat):
+def test_aspire_senat_plf2019_1re_partie(app, texte_senat, dossier_plf):
     from zam_repondeur.fetch.senat.amendements import Senat
     from zam_repondeur.models import DBSession, Lecture
 
@@ -273,7 +306,7 @@ def test_aspire_senat_plf2019_1re_partie(app, texte_senat, dossier_senat):
             partie=1,
             titre="Numéro lecture – Titre lecture sénat",
             organe="PO78718",
-            dossier=dossier_senat,
+            dossier=dossier_plf,
         )
 
     sample_data = read_sample_data("jeu_complet_2018-2019_146.csv")
@@ -314,7 +347,7 @@ def test_aspire_senat_plf2019_1re_partie(app, texte_senat, dossier_senat):
 
 
 @responses.activate
-def test_aspire_senat_plf2019_2e_partie(app, texte_senat, dossier_senat):
+def test_aspire_senat_plf2019_2e_partie(app, texte_senat, dossier_plf):
     from zam_repondeur.fetch.senat.amendements import Senat
     from zam_repondeur.models import DBSession, Lecture
 
@@ -327,7 +360,7 @@ def test_aspire_senat_plf2019_2e_partie(app, texte_senat, dossier_senat):
             partie=2,
             titre="Numéro lecture – Titre lecture sénat",
             organe="PO78718",
-            dossier=dossier_senat,
+            dossier=dossier_plf,
         )
 
     sample_data = read_sample_data("jeu_complet_2018-2019_146.csv")
@@ -645,6 +678,47 @@ def test_fetch_and_parse_discussion_details_empty_and_logs_when_url_not_found(
     assert f"Could not fetch {url}" in [rec.message for rec in caplog.records]
 
 
+@responses.activate
+def test_fetch_and_parse_discussion_details_parent_before(lecture_senat, caplog):
+    from zam_repondeur.fetch.senat.derouleur import fetch_and_parse_discussion_details
+
+    data = json.loads(read_sample_data("liste_discussion_63-short-parent-before.json"))
+
+    responses.add(
+        responses.GET,
+        "https://www.senat.fr/encommission/2017-2018/63/liste_discussion.json",
+        json=data,
+        status=200,
+    )
+
+    details = fetch_and_parse_discussion_details(lecture_senat, phase="commission")
+
+    assert len(details) == 2
+    assert details[0].parent_num == 31
+    assert details[1].parent_num is None
+
+
+@responses.activate
+def test_fetch_and_parse_discussion_details_parent_missing(lecture_senat, caplog):
+    from zam_repondeur.fetch.senat.derouleur import fetch_and_parse_discussion_details
+
+    data = json.loads(read_sample_data("liste_discussion_63-short-parent-missing.json"))
+
+    responses.add(
+        responses.GET,
+        "https://www.senat.fr/encommission/2017-2018/63/liste_discussion.json",
+        json=data,
+        status=200,
+    )
+
+    details = fetch_and_parse_discussion_details(lecture_senat, phase="commission")
+
+    assert len(details) == 2
+    assert details[0].parent_num is None
+    assert details[1].parent_num is None
+    assert f"Unknown parent amendement 1234" in [rec.message for rec in caplog.records]
+
+
 def test_derouleur_urls(lecture_senat):
     from zam_repondeur.fetch.senat.derouleur import derouleur_urls
 
@@ -653,7 +727,7 @@ def test_derouleur_urls(lecture_senat):
     ]
 
 
-def test_derouleur_urls_plf2019_1re_partie(texte_senat, dossier_senat):
+def test_derouleur_urls_plf2019_1re_partie(texte_senat, dossier_plf):
     from zam_repondeur.fetch.senat.derouleur import derouleur_urls
     from zam_repondeur.models import Lecture
 
@@ -665,7 +739,7 @@ def test_derouleur_urls_plf2019_1re_partie(texte_senat, dossier_senat):
         partie=1,
         titre="Première lecture – Séance publique (1re partie)",
         organe="PO78718",
-        dossier=dossier_senat,
+        dossier=dossier_plf,
     )
 
     assert list(derouleur_urls(lecture, "seance")) == [
@@ -673,7 +747,7 @@ def test_derouleur_urls_plf2019_1re_partie(texte_senat, dossier_senat):
     ]
 
 
-def test_derouleur_urls_plf2019_2e_partie(texte_senat, dossier_senat):
+def test_derouleur_urls_plf2019_2e_partie(texte_senat, dossier_plf):
     from zam_repondeur.fetch.senat.derouleur import derouleur_urls
     from zam_repondeur.models import Lecture
 
@@ -685,7 +759,7 @@ def test_derouleur_urls_plf2019_2e_partie(texte_senat, dossier_senat):
         partie=2,
         titre="Première lecture – Séance publique (2e partie)",
         organe="PO78718",
-        dossier=dossier_senat,
+        dossier=dossier_plf,
     )
 
     urls = list(derouleur_urls(lecture, "seance"))

@@ -35,6 +35,19 @@ class LectureEvent(Event):
         return Markup(self.details_template.safe_substitute(**self.template_vars))
 
 
+class LectureCreee(LectureEvent):
+    __mapper_args__ = {"polymorphic_identity": "lecture_creee"}
+    icon = "document"
+
+    summary_template = Template("<abbr title='$email'>$user</abbr> a créé la lecture.")
+
+    def __init__(self, request: Request, lecture: Lecture, **kwargs: Any) -> None:
+        super().__init__(request, lecture, **kwargs)
+
+    def apply(self) -> None:
+        pass
+
+
 class ArticlesRecuperes(LectureEvent):
     __mapper_args__ = {"polymorphic_identity": "articles_recuperes"}
     icon = "document"
@@ -75,11 +88,12 @@ class AmendementsRecuperesLiasse(LectureEvent):
     @property
     def summary_template(self) -> Template:
         count = self.data["count"]
+        base = "<abbr title='$email'>$user</abbr> a importé une liasse XML"
         if count == 1:
-            message = "1 nouvel amendement récupéré (import liasse XML)."
+            message = "1 nouvel amendement récupéré."
         else:
-            message = f"{count} nouveaux amendements récupérés (import liasse XML)."
-        return Template(message)
+            message = f"{count} nouveaux amendements récupérés."
+        return Template(f"{base} : {message}")
 
     def __init__(self, request: Request, lecture: Lecture, **kwargs: Any) -> None:
         super().__init__(request, lecture, **kwargs)
@@ -136,6 +150,21 @@ class ReponsesImportees(LectureEvent):
 
     summary_template = Template(
         "<abbr title='$email'>$user</abbr> a importé des réponses d’un fichier CSV."
+    )
+
+    def __init__(self, request: Request, lecture: Lecture, **kwargs: Any) -> None:
+        super().__init__(request, lecture, **kwargs)
+
+    def apply(self) -> None:
+        pass
+
+
+class ReponsesImporteesJSON(LectureEvent):
+    __mapper_args__ = {"polymorphic_identity": "reponses_importees_json"}
+    icon = "document"
+
+    summary_template = Template(
+        "<abbr title='$email'>$user</abbr> a importé des réponses d’un fichier JSON."
     )
 
     def __init__(self, request: Request, lecture: Lecture, **kwargs: Any) -> None:
